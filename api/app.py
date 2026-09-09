@@ -326,6 +326,48 @@ def create_app(root_path: str = "") -> FastAPI:
         db.commit()
         return dict(row._mapping)
 
+    @api.get("/items/{item_id}/price-variance", tags=["items", "markets"])
+    def item_price_variance(
+        item_id: int,
+        market: str | None = None,
+        principal: dict = Depends(get_api_principal),
+        db: Session = Depends(get_db),
+    ):
+        """Compare latest supplier offers within one country, with EU context."""
+        require_scope(principal, "prices:read")
+        from pricing.analytics import (
+            choose_default_market, get_catalog_item, json_ready, latest_item_offers,
+            summarize_markets, summarize_offers,
+        )
+        from pricing.markets import normalize_market
+
+        item = get_catalog_item(db, item_id)
+        if not item:
+            raise HTTPException(404, "Catalogue item not found")
+        offers = latest_item_offers(db, item_id)
+        if market:
+            try:
+                selected_market = normalize_market(market)
+            except ValueError as exc:
+                raise HTTPException(422, str(exc)) from exc
+        else:
+            selected_market = choose_default_market(offers)
+        country_offers = [offer for offer in offers if offer["market"] == selected_market]
+        payload = {
+            "item": item,
+            "market": selected_market,
+            "country_summary": summarize_offers(country_offers),
+            "country_offers": country_offers,
+            "eu_summary": summarize_offers(offers),
+            "eu_markets": summarize_markets(offers),
+            "methodology": {
+                "snapshot": "latest comparable observation per active offer",
+                "currency": "EUR",
+                "coverage": "observed public sources; not complete market coverage",
+            },
+        }
+        return json_ready(payload)
+
     @api.get("/cpv/search", tags=["cpv"])
     def cpv_search(
         q: str,

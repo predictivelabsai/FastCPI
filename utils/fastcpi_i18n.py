@@ -87,6 +87,41 @@ APP_COPY = {
     "unable_key": ("Unable to create key", "Impossible de créer la clé"),
     "observed_market": ("Observed market intelligence", "Intelligence du marché observé"),
     "market_intro": ("Asking-price observations from public B2B sources. Coverage is not the complete market.", "Observations de prix affichés issues de sources B2B publiques. La couverture ne représente pas l’ensemble du marché."),
+    "supplier_price_variance": ("Supplier price variance", "Écart de prix entre fournisseurs"),
+    "market_item_intro": ("Select one item and compare the latest public supplier prices inside one country. The EU comparison is a secondary review.", "Sélectionnez un article et comparez les derniers prix publics des fournisseurs dans un même pays. La comparaison européenne constitue une analyse secondaire."),
+    "item_label": ("Item or service", "Article ou service"),
+    "country_label": ("Country market", "Marché national"),
+    "update_view": ("Update", "Actualiser"),
+    "within_country": ("Within one country", "Dans un même pays"),
+    "across_eu": ("Across the EU", "Dans l’Union européenne"),
+    "primary_review": ("Primary review", "Analyse principale"),
+    "secondary_review": ("Secondary review", "Analyse secondaire"),
+    "country_review_intro": ("Each point is the latest comparable observation for a distinct public offer in this country.", "Chaque point correspond à la dernière observation comparable d’une offre publique distincte dans ce pays."),
+    "eu_review_intro": ("Country medians and observed ranges provide context after the within-country supplier review.", "Les médianes nationales et les fourchettes observées apportent un contexte après l’analyse des fournisseurs dans un même pays."),
+    "current_supplier_prices": ("Current supplier prices", "Prix actuels des fournisseurs"),
+    "comparable_price_eur": ("Comparable price (EUR)", "Prix comparable (EUR)"),
+    "suppliers_sources": ("Suppliers / sources", "Fournisseurs / sources"),
+    "latest_offers": ("latest offers", "dernières offres"),
+    "lowest_observed": ("Lowest observed", "Prix observé le plus bas"),
+    "median_observed": ("Observed median", "Médiane observée"),
+    "highest_observed": ("Highest observed", "Prix observé le plus élevé"),
+    "observed_spread": ("Observed spread", "Écart observé"),
+    "range": ("Range", "Fourchette"),
+    "supplier_source_evidence": ("Supplier and source evidence", "Preuves des fournisseurs et des sources"),
+    "latest_snapshot_note": ("Only the latest comparable observation for each offer is used. Open any source to verify the public evidence.", "Seule la dernière observation comparable de chaque offre est utilisée. Ouvrez une source pour vérifier la preuve publique."),
+    "multiple_source_note": ("This country view compares multiple public sources. It remains an observed sample, not complete market coverage.", "Cette vue nationale compare plusieurs sources publiques. Il s’agit toujours d’un échantillon observé, et non d’une couverture complète du marché."),
+    "single_source_warning": ("Only one source is currently observed in this country, so a meaningful supplier variance is not yet available.", "Une seule source est actuellement observée dans ce pays ; l’écart entre fournisseurs n’est donc pas encore significatif."),
+    "no_prices_country": ("No comparable prices observed for this item in the selected country.", "Aucun prix comparable observé pour cet article dans le pays sélectionné."),
+    "no_prices_country_detail": ("Choose another country or open the EU review to see current coverage.", "Choisissez un autre pays ou ouvrez l’analyse européenne pour consulter la couverture actuelle."),
+    "no_item_observations": ("No comparable observations are available for this item yet.", "Aucune observation comparable n’est encore disponible pour cet article."),
+    "no_catalog_items": ("No catalogue items are available yet.", "Aucun article du catalogue n’est encore disponible."),
+    "eu_price_ranges": ("EU country medians and observed ranges", "Médianes nationales et fourchettes observées dans l’UE"),
+    "markets_covered": ("Countries observed", "Pays observés"),
+    "country_ranges": ("Country price ranges", "Fourchettes de prix par pays"),
+    "country": ("Country", "Pays"),
+    "source": ("source", "source"),
+    "sources": ("sources", "sources"),
+    "original_price": ("Original price", "Prix d’origine"),
     "coverage": ("Market coverage", "Couverture du marché"),
     "index": ("Observed price index", "Indice de prix observé"),
     "distribution": ("Price distribution", "Distribution des prix"),
@@ -153,6 +188,12 @@ STARTER_NAMES_FR = {
     "Hourly IT support · Estonia": "Support informatique horaire · Estonie",
 }
 
+CATALOG_NAMES_FR = {
+    "A4 80 gsm office copy paper, 500 sheets": "Papier de bureau A4 80 g/m², 500 feuilles",
+    "HP 207A black toner cartridge W2210A": "Cartouche de toner noir HP 207A W2210A",
+    "Hourly technical computer support": "Support informatique technique à l’heure",
+}
+
 FRENCH_SAMPLE_PROMPTS = {
     "price_finder": ("Prix du papier A4 recyclé en France", "Prix du SKU 6ES7214-1AG40-0XB0 en Allemagne", "Prix du GTIN 4006381333931 aux Pays-Bas"),
     "cpv_specialist": ("Code CPV 30100000-0 en France", "Trouver les descendants CPV des machines de bureau", "Comparer les services de nettoyage en Estonie et en Lettonie"),
@@ -168,6 +209,10 @@ def app_tr(key: str, lang: str = "en") -> str:
     if not values:
         return key
     return values[1] if lang == "fr" else values[0]
+
+
+def app_catalog_item_name(name: str, lang: str = "en") -> str:
+    return CATALOG_NAMES_FR.get(name, name) if lang == "fr" else name
 
 
 def app_agent_name(slug: str, fallback: str, lang: str = "en") -> str:

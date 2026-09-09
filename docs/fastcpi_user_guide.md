@@ -193,14 +193,20 @@ leases, retry state, domain throttling and cost quotas are the priority next sli
 
 ![French market overview](../screenshots/06-french-market-overview.png)
 
-The static Plotly dashboard summarizes observed coverage, base-100 price-index series and
-comparable EUR distributions. Chat questions can also stream Plotly views into the conversation.
+The default **Within one country / Dans un même pays** view starts with one selected catalogue
+item and one country. It compares the latest comparable observation for each distinct supplier
+offer, showing the lowest price, median, observed spread and clickable source evidence. This is
+the primary procurement review because prices from competing suppliers in the same country are
+usually more directly comparable.
 
-Read every chart with its sample size and freshness. Pilot indices are derived from observed
-asking prices; they do not yet have official statistical weights, seasonal treatment, confidence
-intervals or a formal revision policy.
+Use the item and country selectors to change the benchmark. Open **Across the EU / Dans l’Union
+européenne** only as a secondary review: it plots each observed country’s median and price range,
+then preserves the underlying supplier links below the chart.
 
-Use these charts to find gaps, changes and outliers—not as official inflation measures.
+Repeated captures of the same offer do not receive extra weight: the dashboard uses its latest
+observation. Read every result with its source count, freshness, unit, VAT/delivery warnings and
+coverage note. The spread remains an observed web sample—not an official inflation measure or a
+claim of complete market coverage.
 
 ---
 
@@ -227,8 +233,10 @@ Open **https://cpi.fastsme.com/developers** for the resource guide and links to:
 - runtime and compatibility schemas.
 
 Core resources search persisted observations, run live observations, resolve CPV descendants,
-read market coverage and indices, manage user watchlists and access catalog items. Live discovery
-requires a stronger scope than read-only access.
+read market coverage and indices, manage user watchlists and access catalog items. Use
+`GET /items/{item_id}/price-variance?market=FR` for the same latest-offer country benchmark and
+secondary EU context shown by the dashboard. Live discovery requires a stronger scope than
+read-only access.
 
 ---
 

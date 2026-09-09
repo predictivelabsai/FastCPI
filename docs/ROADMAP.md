@@ -13,6 +13,8 @@ product for procurement teams. It is not an official consumer price index.
   recurring-domain adapter. URL/redirect SSRF controls and robots policy checks are enforced.
 - Source-backed observations, discovery-only candidates, daily scan events, alert email support,
   FastAPI/OpenAPI endpoints, streamed chat, Plotly charts and a fully localised French workspace.
+- Item-first supplier variance dashboards use the latest observation per public offer, compare
+  suppliers within one selected country by default and expose EU country ranges as a secondary view.
 - Open Google/email signup. Each account receives isolated watchlists and can issue revocable,
   scoped API keys.
 

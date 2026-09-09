@@ -907,6 +907,139 @@
 .visual-card { min-width: 0; border: 1px solid #e3ebe7; border-radius: 10px; padding: 12px; background: #fff; }
 .visual-card-title { font-size: 12px; font-weight: 600; color: #34453e; }
 .visual-plot { min-height: 340px; }
+
+/* -- Item-first supplier variance dashboard -- */
+.variance-dashboard { max-width: 1180px; width: 100%; margin: 0 auto; }
+.variance-controls {
+  display: grid;
+  grid-template-columns: minmax(260px, 1.5fr) minmax(220px, 1fr) auto;
+  gap: 12px;
+  align-items: end;
+  padding: 14px;
+  border: 1px solid #dfe8e3;
+  border-radius: 12px;
+  background: #f8fbf9;
+}
+.variance-control { min-width: 0; }
+.variance-control-label {
+  display: block;
+  margin-bottom: 6px;
+  color: #52615b;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .05em;
+  text-transform: uppercase;
+}
+.variance-select {
+  width: 100%;
+  height: 40px;
+  padding: 0 34px 0 11px;
+  border: 1px solid #cfdad4;
+  border-radius: 8px;
+  background: #fff;
+  color: var(--ink);
+  font-size: 13px;
+}
+.variance-update-btn {
+  height: 40px;
+  padding: 0 18px;
+  border: none;
+  border-radius: 8px;
+  background: var(--ink);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.variance-tabs {
+  display: inline-flex;
+  gap: 4px;
+  margin: 16px 0 22px;
+  padding: 4px;
+  border-radius: 9px;
+  background: #edf3f0;
+}
+.variance-tab {
+  padding: 8px 14px;
+  border-radius: 7px;
+  color: #61716a;
+  font-size: 12px;
+  font-weight: 600;
+  text-decoration: none;
+}
+.variance-tab:hover { color: var(--ink); }
+.variance-tab.active { background: #fff; color: var(--ink); box-shadow: 0 1px 3px rgba(23, 32, 28, .1); }
+.review-badge {
+  display: inline-flex;
+  margin-bottom: 7px;
+  padding: 4px 8px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+}
+.review-badge.primary { color: #0d6a52; background: #e3f4ed; }
+.review-badge.secondary { color: #5e6470; background: #eff1f3; }
+.variance-heading { font-family: 'DM Serif Display', Georgia, serif; font-size: 25px; line-height: 1.25; }
+.variance-lead { max-width: 760px; margin-top: 5px; color: var(--ink-muted); font-size: 13px; }
+.variance-stats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  margin: 18px 0 14px;
+}
+.variance-stat-card { min-width: 0; padding: 13px 14px; border: 1px solid #e0e8e4; border-radius: 10px; background: #fff; }
+.variance-stat-label { color: #66736d; font-size: 10px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; }
+.variance-stat-value { margin-top: 5px; color: #17201c; font-size: 18px; font-weight: 700; line-height: 1.25; }
+.variance-stat-detail { margin-top: 4px; color: #7c8983; font-size: 10px; }
+.variance-chart { min-height: 350px; margin-top: 12px; border: 1px solid #e0e8e4; border-radius: 12px; background: #fff; overflow: hidden; }
+.variance-coverage-note { margin: 10px 0 24px; padding: 10px 12px; border-left: 3px solid #6fa48f; background: #f5faf7; color: #52615b; font-size: 11px; line-height: 1.5; }
+.variance-section-title { margin: 24px 0 3px; font-size: 14px; font-weight: 700; }
+.variance-section-copy { margin-bottom: 10px; color: var(--ink-muted); font-size: 11px; }
+.variance-source-list { display: grid; gap: 9px; }
+.variance-source-card { padding: 14px; border: 1px solid #e0e8e4; border-radius: 10px; background: #fff; }
+.source-card-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 18px; }
+.source-card-head > div:first-child { min-width: 0; }
+.source-card-head > div:last-child { flex-shrink: 0; text-align: right; }
+.source-card-supplier { color: #17201c; font-size: 13px; font-weight: 700; }
+.source-card-title { margin-top: 3px; color: #5d6c65; font-size: 11px; line-height: 1.4; }
+.source-card-price { color: #0d6a52; font-size: 16px; font-weight: 700; white-space: nowrap; }
+.source-card-original { margin-top: 2px; color: #8a9690; font-size: 9px; }
+.source-card-meta-row { display: flex; flex-wrap: wrap; align-items: center; gap: 5px; margin-top: 10px; }
+.source-pill { padding: 3px 6px; border-radius: 999px; background: #edf3f0; color: #4f6159; font-size: 9px; font-weight: 600; }
+.source-card-meta { margin-left: auto; color: #8a9690; font-size: 9px; }
+.source-card-warning { margin-top: 8px; color: #9a6518; font-size: 10px; }
+.source-card-link { display: inline-block; margin-top: 9px; color: #08785d; font-size: 11px; font-weight: 600; text-decoration: none; }
+.source-card-link:hover { text-decoration: underline; }
+.variance-empty { margin-top: 14px; padding: 30px; border: 1px dashed #ccd8d2; border-radius: 12px; text-align: center; background: #fafcfb; }
+.variance-empty-title { color: #405049; font-size: 14px; font-weight: 600; }
+.variance-empty-copy { margin-top: 5px; color: var(--ink-muted); font-size: 11px; }
+.eu-market-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 9px; margin-top: 10px; }
+.eu-market-card { padding: 13px; border: 1px solid #e0e8e4; border-radius: 10px; background: #fff; }
+.eu-market-head { display: flex; align-items: center; gap: 8px; }
+.eu-country-name { font-size: 12px; font-weight: 700; }
+.eu-source-count { margin-left: auto; color: #77847e; font-size: 10px; }
+.eu-market-metrics { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 7px; margin-top: 11px; }
+.eu-metric-label { color: #7b8882; font-size: 8px; font-weight: 700; text-transform: uppercase; }
+.eu-metric-value { margin-top: 3px; color: #31413a; font-size: 10px; font-weight: 600; }
+
+@media (max-width: 900px) {
+  .variance-controls { grid-template-columns: 1fr 1fr; }
+  .variance-update-btn { grid-column: 1 / -1; }
+  .variance-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (max-width: 600px) {
+  .variance-controls { grid-template-columns: 1fr; }
+  .variance-update-btn { grid-column: auto; }
+  .variance-stats, .eu-market-list { grid-template-columns: 1fr; }
+  .variance-heading { font-size: 21px; }
+  .source-card-head { display: block; }
+  .source-card-head > div:last-child { margin-top: 10px; text-align: left; }
+  .source-card-meta { width: 100%; margin-left: 0; }
+  .variance-chart { min-height: 320px; }
+}
 @media (max-width: 768px) {
   .chat-chart { margin-left: 12px; margin-right: 12px; }
   .visuals-grid { grid-template-columns: 1fr; }

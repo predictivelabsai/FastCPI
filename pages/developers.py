@@ -18,6 +18,7 @@ RESOURCES = (
     ("Search observations", "Search persisted, source-backed observations without starting a crawl.", "GET", "/api/v1/prices/search", "prices:read"),
     ("Observe prices", "Run Exa discovery, fetch candidate pages and persist attributable evidence.", "POST", "/api/v1/prices/observe", "prices:observe"),
     ("CPV hierarchy", "Search CPV Version 2008 or expand a broad code into descendants.", "GET", "/api/v1/cpv/{code}/overview", "prices:read"),
+    ("Item price variance", "Compare latest supplier offers within one country, with EU ranges as secondary context.", "GET", "/api/v1/items/{item_id}/price-variance", "prices:read"),
     ("Market overview", "Retrieve observation, source and median coverage for one market.", "GET", "/api/v1/markets/{country}/overview", "prices:read"),
     ("Price indices", "Read base-100 web-observed price-index series and their coverage.", "GET", "/api/v1/indices", "prices:read"),
     ("Watchlists", "Create and manage user-scoped daily price monitors and events.", "POST", "/api/v1/watchlists", "signed-in user"),

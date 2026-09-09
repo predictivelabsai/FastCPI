@@ -8,12 +8,13 @@ terms, and tracks observed asking-price movements. It is not an official consume
 
 - `/` — public FastSME-style landing page
 - `/app` — three-pane streaming price-intelligence chat
-- `/app/market-overview` — static Plotly market dashboard
+- `/app/market-overview` — item-first Plotly supplier-variance dashboard, country view by default
 - `/app/watchlists` — user-specific daily price monitors
 - `/app/daily-scan` — latest watchlist movements
 - `/developers` — API guide with Swagger, ReDoc and versioned OpenAPI links
 - `/api/docs` and `/api/redoc` — interactive API documentation
 - `/api/openapi/v1.json` — versioned OpenAPI schema
+- `/api/v1/items/{item_id}/price-variance` — latest-offer country benchmark with EU context
 
 Initial markets are Germany, Denmark, Estonia, Finland, France, Lithuania, Latvia, the
 Netherlands, Poland and Sweden. Queries may use plain language, CPV Version 2008 codes, SKUs,
