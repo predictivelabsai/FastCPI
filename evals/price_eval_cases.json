@@ -42,6 +42,7 @@
       "category": "multilingual",
       "question": "Montrez-moi les prix observés les plus bas pour du papier A4 recyclé en France.",
       "expected_route": "price_finder",
+      "expected_language": "fr",
       "market": "FR",
       "requires_source": true,
       "requires_coverage_disclaimer": true

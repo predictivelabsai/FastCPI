@@ -11,6 +11,9 @@
     const AGENT_PROMPTS = readJsonScript("agent-prompts-data") || {};
     const AGENT_NAMES = readJsonScript("agent-names-data") || {};
     const AGENT_PREFIX_MAP = readJsonScript("agent-prefix-map") || {};
+    const I18N = readJsonScript("i18n-data") || {};
+    const ui = (key, fallback) => I18N[key] || fallback;
+    window.FASTCPI_I18N = I18N;
 
     function readJsonScript(id) {
         const el = document.getElementById(id);
@@ -73,6 +76,45 @@
             .replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
     }
 
+    function safeURL(value) {
+        try {
+            const url = new URL(String(value || ""), window.location.origin);
+            return ["http:", "https:"].includes(url.protocol) ? escapeHTML(url.href) : "#";
+        } catch (e) { return "#"; }
+    }
+
+    function sanitizeHTML(html) {
+        const template = document.createElement("template");
+        template.innerHTML = html;
+        template.content.querySelectorAll("script,style,iframe,object,embed,form,link,meta").forEach(el => el.remove());
+        template.content.querySelectorAll("*").forEach(el => {
+            Array.from(el.attributes).forEach(attr => {
+                const name = attr.name.toLowerCase();
+                if (name.startsWith("on") || name === "srcdoc") el.removeAttribute(attr.name);
+                if (["href", "src"].includes(name)) {
+                    try {
+                        const url = new URL(attr.value, window.location.origin);
+                        if (!["http:", "https:", "mailto:"].includes(url.protocol)) el.removeAttribute(attr.name);
+                    } catch (e) { el.removeAttribute(attr.name); }
+                }
+            });
+        });
+        return template.innerHTML;
+    }
+
+    function decorateExternalLinks(container) {
+        if (!container) return;
+        container.querySelectorAll("a[href]").forEach(link => {
+            try {
+                const url = new URL(link.getAttribute("href"), window.location.origin);
+                if (["http:", "https:"].includes(url.protocol)) {
+                    link.target = "_blank";
+                    link.rel = "noopener noreferrer";
+                }
+            } catch (e) { link.removeAttribute("href"); }
+        });
+    }
+
     function renderChart(payload) {
         if (!payload || !payload.figure || !window.Plotly) return;
         const host = $("#messages");
@@ -81,7 +123,7 @@
         card.className = "chat-chart";
         const title = document.createElement("div");
         title.className = "chat-chart-title";
-        title.textContent = payload.title || "Market chart";
+        title.textContent = payload.title || ui("market_chart", "Market chart");
         const plot = document.createElement("div");
         plot.className = "chat-chart-plot";
         card.append(title, plot);
@@ -92,9 +134,10 @@
     }
 
     function renderMarkdownLite(text) {
-        if (window.marked) return marked.parse(text);
-        return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
-            .replace(/\n/g, "<br>");
+        const rendered = window.marked
+            ? marked.parse(text, { gfm: true, breaks: true })
+            : escapeHTML(text).replace(/\n/g, "<br>");
+        return sanitizeHTML(rendered);
     }
 
     function tableToCSV(table) {
@@ -117,16 +160,16 @@
             const toolbar = document.createElement("div");
             toolbar.className = "table-toolbar";
             const copyBtn = document.createElement("button");
-            copyBtn.textContent = "Copy CSV";
+            copyBtn.textContent = ui("copy_csv", "Copy CSV");
             copyBtn.className = "table-action-btn";
             copyBtn.onclick = () => {
                 navigator.clipboard.writeText(tableToCSV(table)).then(() => {
-                    copyBtn.textContent = "Copied!";
-                    setTimeout(() => { copyBtn.textContent = "Copy CSV"; }, 1500);
+                    copyBtn.textContent = ui("copied", "Copied!");
+                    setTimeout(() => { copyBtn.textContent = ui("copy_csv", "Copy CSV"); }, 1500);
                 });
             };
             const dlBtn = document.createElement("button");
-            dlBtn.textContent = "Download CSV";
+            dlBtn.textContent = ui("download_csv", "Download CSV");
             dlBtn.className = "table-action-btn";
             dlBtn.onclick = () => {
                 const blob = new Blob([tableToCSV(table)], { type: "text/csv" });
@@ -153,7 +196,7 @@
             timerId: null,
         };
         thinker.el.className = "thinking-indicator";
-        thinker.el.innerHTML = `<span class="dot"></span><span class="label">Thinking... <span class="secs">0s</span></span>`;
+        thinker.el.innerHTML = `<span class="dot"></span><span class="label">${escapeHTML(ui("thinking", "Thinking"))}... <span class="secs">0s</span></span>`;
         bubble.parentElement.insertBefore(thinker.el, bubble);
         thinker.timerId = setInterval(updateThinking, 500);
     }
@@ -161,8 +204,8 @@
         if (!thinker) return;
         const secs = Math.floor((Date.now() - thinker.started) / 1000);
         const label = thinker.tool
-            ? `Thinking... <span class="secs">${secs}s</span> -- calling <code>${thinker.tool}</code>`
-            : `Thinking... <span class="secs">${secs}s</span>`;
+            ? `${escapeHTML(ui("thinking", "Thinking"))}... <span class="secs">${secs}s</span> -- ${escapeHTML(ui("calling", "calling"))} <code>${escapeHTML(thinker.tool)}</code>`
+            : `${escapeHTML(ui("thinking", "Thinking"))}... <span class="secs">${secs}s</span>`;
         thinker.el.querySelector(".label").innerHTML = label;
     }
     function setThinkingTool(name) {
@@ -184,7 +227,7 @@
 
         let prompts = (slug && AGENT_PROMPTS[slug]) || [];
         if (!prompts.length) {
-            prompts = [
+            prompts = AGENT_PROMPTS._default || [
                 "price: A4 recycled printer paper in France",
                 "cpv: 30100000-0 and descendants in Germany",
                 "market: office supplies price index",
@@ -256,7 +299,7 @@
                 buffer = buffer.slice(idx + 2);
                 handleEvent(raw, (type, payload) => {
                     if (type === "agent_route") {
-                        const nice = payload.agent || AGENT_NAMES[payload.slug] || payload.slug;
+                        const nice = AGENT_NAMES[payload.slug] || payload.agent || payload.slug;
                         const label = $("#current-agent-label");
                         if (label) label.textContent = nice;
                         currentAgentSlug = payload.slug;
@@ -269,6 +312,7 @@
                         if (accumulated === "") hideThinking();
                         accumulated += payload.text;
                         bubble.innerHTML = renderMarkdownLite(accumulated);
+                        decorateExternalLinks(bubble);
                         scrollMessagesBottom();
                     } else if (type === "tool_start") {
                         setThinkingTool(payload.name);
@@ -282,13 +326,14 @@
                     } else if (type === "error") {
                         hideThinking();
                         if (!bubble) bubble = addBubble("assistant", "", "");
-                        bubble.textContent = "Error: " + (payload.message || "unknown");
+                        bubble.textContent = ui("error", "Error") + ": " + (payload.message || "unknown");
                     } else if (type === "session") {
                         if (payload.sid) setSid(payload.sid);
                     } else if (type === "done") {
                         hideThinking();
                         if (bubble) bubble.classList.remove("streaming");
                         enhanceTables(bubble);
+                        decorateExternalLinks(bubble);
                     }
                 });
             }
@@ -316,19 +361,26 @@
         if (body) body.style.display = "block";
 
         const sub = $("#artifact-subtitle");
-        if (sub) sub.textContent = payload.subtitle || "";
+        if (sub) {
+            if (payload.kind === "prices") {
+                const observedCount = Number(payload.offer_count ?? (payload.offers || []).length);
+                const discoveryCount = Number(payload.discovery_count ?? (payload.discoveries || []).length);
+                sub.textContent = `${observedCount} ${ui("observed_offers", "observed offers")} · ${discoveryCount} ${ui("discovered_sources", "candidate sources")}`;
+            } else sub.textContent = payload.subtitle || "";
+        }
 
         const card = document.createElement("div");
         card.className = "artifact-card";
-        const title = payload.title || "Canvas";
+        const title = payload.kind === "prices" ? ui("top_hits", "Top hits") : (payload.title || ui("canvas", "Evidence"));
         const kind = payload.kind || "note";
         card.innerHTML = `
-            <div class="meta">${kind}</div>
-            <h4>${title}</h4>
+            <div class="meta">${escapeHTML(kind === "prices" ? ui("prices", "Prices") : kind)}</div>
+            <h4>${escapeHTML(title)}</h4>
             <div class="body">${renderArtifactHTML(payload)}</div>
         `;
         body.prepend(card);
         enhanceTables(card);
+        decorateExternalLinks(card);
 
         if (payload.kind === "chart" && payload.figure) {
             const chartDiv = card.querySelector(".body");
@@ -359,29 +411,36 @@
 
     function renderArtifactHTML(p) {
         if (p.kind === "chart") {
-            return '<div style="color:var(--ink-muted);font-size:12px">Loading chart...</div>';
+            return `<div style="color:var(--ink-muted);font-size:12px">${escapeHTML(ui("loading_chart", "Loading chart…"))}</div>`;
         }
         if (p.kind === "prices" && Array.isArray(p.offers)) {
-            const observed = p.offers.map(o => {
+            const observed = p.offers.slice(0, 3).map(o => {
                 const amount = o.comparable_amount != null ? o.comparable_amount : o.amount;
-                const unit = o.comparable_unit || o.unit || "unit";
-                const warnings = (o.warnings || []).map(escapeHTML).join(" · ");
+                let unit = o.comparable_unit || o.unit || "unit";
+                if (unit === "each") unit = ui("each", "each");
+                const warningMap = {
+                    "delivery not confirmed": ui("delivery_unknown", "delivery not confirmed"),
+                    "VAT status unknown": ui("vat_unknown", "VAT status unknown"),
+                };
+                const warnings = (o.warnings || []).map(w => escapeHTML(warningMap[w] || w)).join(" · ");
                 return `<div class="price-card">
                     <div class="price-card-head"><strong>${escapeHTML(o.title || "Observed offer")}</strong>
-                    <span class="evidence-badge">Observed</span></div>
+                    <span class="evidence-badge">${escapeHTML(ui("observed", "Observed"))}</span></div>
                     <div class="price-value">${escapeHTML(o.currency)} ${Number(amount).toLocaleString()} <small>/ ${escapeHTML(unit)}</small></div>
                     <div class="price-source">${escapeHTML(o.seller || o.source_domain)} · ${escapeHTML(o.market || "")}</div>
-                    <div class="price-meta">Captured ${escapeHTML(o.captured_at || "")} · confidence ${Math.round(Number(o.confidence || 0) * 100)}%</div>
+                    <div class="price-meta">${escapeHTML(ui("captured", "Captured"))} ${escapeHTML(o.captured_at || "")} · ${escapeHTML(ui("confidence", "confidence"))} ${Math.round(Number(o.confidence || 0) * 100)}%</div>
                     ${warnings ? `<div class="price-warning">${warnings}</div>` : ""}
-                    <a href="${escapeHTML(o.url)}" target="_blank" rel="noopener noreferrer" class="deal-link">Open source &rarr;</a>
+                    <a href="${safeURL(o.url)}" target="_blank" rel="noopener noreferrer" class="deal-link">${escapeHTML(ui("open_source", "Open source"))} &rarr;</a>
                 </div>`;
             }).join("");
-            const discoveries = (p.discovery_only || p.discoveries || []).map(d => `<div class="discovery-row">
-                <span class="discovery-badge">Discovery only</span>
-                <a href="${escapeHTML(d.url)}" target="_blank" rel="noopener noreferrer">${escapeHTML(d.title || d.url)}</a>
+            const discoveries = (p.discovery_only || p.discoveries || []).slice(0, 5).map(d => `<div class="discovery-row">
+                <span class="discovery-badge">${escapeHTML(ui("discovery_only", "Discovery only"))}</span>
+                <a href="${safeURL(d.url)}" target="_blank" rel="noopener noreferrer">${escapeHTML(d.title || d.url)}</a>
             </div>`).join("");
-            return (observed || '<p style="color:var(--ink-muted)">No structured price extracted.</p>') +
-                (discoveries ? `<h5 class="artifact-subhead">Candidate sources</h5>${discoveries}` : "");
+            const count = Number(p.offer_count || p.offers.length);
+            const countNote = count > 3 ? `<p class="price-meta">3 / ${count} ${escapeHTML(ui("observed", "observed").toLowerCase())}</p>` : "";
+            return countNote + (observed || `<p style="color:var(--ink-muted)">${escapeHTML(ui("no_structured_price", "No structured price extracted."))}</p>`) +
+                (discoveries ? `<h5 class="artifact-subhead">${escapeHTML(ui("candidate_sources", "Candidate sources"))}</h5>${discoveries}` : "");
         }
         if (p.kind === "deals" && Array.isArray(p.deals)) {
             if (!p.deals.length) return '<p style="color:var(--ink-muted)">No deals found.</p>';
@@ -596,7 +655,11 @@
             .catch(() => {});
     };
 
-    document.querySelectorAll(".msg-bubble").forEach(b => enhanceTables(b));
+    document.querySelectorAll(".msg-assistant .msg-bubble").forEach(b => {
+        b.innerHTML = renderMarkdownLite(b.textContent);
+        enhanceTables(b);
+        decorateExternalLinks(b);
+    });
 
     window.toggleLangDropdown = (ev) => {
         ev.stopPropagation();
@@ -647,10 +710,14 @@
 
 /* -- Auth functions (global, called from onclick handlers) -- */
 
+function authUi(key, fallback) {
+    return (window.FASTCPI_I18N && window.FASTCPI_I18N[key]) || fallback;
+}
+
 function switchAuthTab(tab) {
     document.getElementById('auth-form-login').style.display = tab === 'login' ? '' : 'none';
     const registerForm = document.getElementById('auth-form-register');
-    if (registerForm) registerForm.style.display = 'none';
+    if (registerForm) registerForm.style.display = tab === 'register' ? '' : 'none';
     document.getElementById('auth-form-forgot').style.display = tab === 'forgot' ? '' : 'none';
     document.querySelectorAll('.auth-tab').forEach(t => t.classList.remove('active'));
     const tabEl = document.getElementById('auth-tab-' + tab);
@@ -672,7 +739,7 @@ async function doLogin() {
     const password = document.getElementById('login-password').value;
     const errEl = document.getElementById('login-error');
     errEl.textContent = '';
-    if (!email || !password) { errEl.textContent = 'Email and password required'; return; }
+    if (!email || !password) { errEl.textContent = authUi('credentials_required', 'Email and password required'); return; }
 
     const resp = await fetch('/auth/login', {
         method: 'POST',
@@ -682,9 +749,9 @@ async function doLogin() {
     if (data.ok) {
         location.reload();
     } else if (data.error === 'no_password') {
-        errEl.textContent = 'This account uses Google Sign-In.';
+        errEl.textContent = authUi('google_account', 'This account uses Google Sign-In.');
     } else {
-        errEl.textContent = data.error || 'Login failed';
+        errEl.textContent = data.error || authUi('login_failed', 'Login failed');
     }
 }
 
@@ -695,7 +762,7 @@ async function doRegister() {
     const errEl = document.getElementById('reg-error');
     const okEl = document.getElementById('reg-success');
     errEl.textContent = ''; okEl.textContent = '';
-    if (!email || !password) { errEl.textContent = 'Email and password required'; return; }
+    if (!email || !password) { errEl.textContent = authUi('credentials_required', 'Email and password required'); return; }
 
     const resp = await fetch('/auth/register', {
         method: 'POST',
@@ -703,9 +770,9 @@ async function doRegister() {
     });
     const data = await resp.json();
     if (data.ok) {
-        okEl.textContent = data.message || 'Check your email to verify';
+        okEl.textContent = authUi('verify_email', 'Check your email to verify');
     } else {
-        errEl.textContent = data.error || 'Registration failed';
+        errEl.textContent = data.error || authUi('registration_failed', 'Registration failed');
     }
 }
 
@@ -713,7 +780,7 @@ async function doForgot() {
     const email = document.getElementById('forgot-email').value.trim();
     const msgEl = document.getElementById('forgot-msg');
     msgEl.textContent = '';
-    if (!email) { msgEl.textContent = 'Enter your email'; msgEl.style.color = '#DC2626'; return; }
+    if (!email) { msgEl.textContent = authUi('enter_email', 'Enter your email'); msgEl.style.color = '#DC2626'; return; }
 
     const resp = await fetch('/auth/forgot', {
         method: 'POST',
@@ -721,7 +788,7 @@ async function doForgot() {
     });
     const data = await resp.json();
     msgEl.style.color = '#16A34A';
-    msgEl.textContent = data.message || 'Reset link sent if account exists';
+    msgEl.textContent = data.message || authUi('reset_sent', 'Reset link sent if account exists');
 }
 
 function showSetPassword(email) {

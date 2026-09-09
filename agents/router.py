@@ -10,13 +10,18 @@ from pricing.identifiers import classify_query
 
 log = logging.getLogger(__name__)
 _PREFIX_MAP = {a.prefix.rstrip(":"): a.slug for a in AGENTS if a.prefix}
+_PREFIX_MAP.update({
+    "prix": "price_finder", "cpv": "cpv_specialist", "marché": "market_analyst",
+    "marche": "market_analyst", "comparer": "product_compare",
+    "suivre": "watchlist_monitor", "conseil": "advisor",
+})
 _KEYWORDS = {
-    "watchlist_monitor": ["watch", "monitor", "alert", "notify", "daily scan", "threshold"],
-    "cpv_specialist": ["cpv", "procurement vocabulary", "division", "descendant"],
-    "market_analyst": ["market", "trend", "index", "distribution", "chart", "median", "coverage"],
-    "product_compare": ["compare", "versus", " vs ", "comparison", "supplier offers"],
-    "advisor": ["advise", "recommend", "competitive", "should we", "sourcing strategy"],
-    "price_finder": ["price", "find", "show me", "lowest", "cheapest", "supplier", "quote"],
+    "watchlist_monitor": ["watch", "monitor", "alert", "notify", "daily scan", "threshold", "suivre", "surveiller", "alerter"],
+    "cpv_specialist": ["cpv", "procurement vocabulary", "division", "descendant", "vocabulaire commun"],
+    "market_analyst": ["market", "trend", "index", "distribution", "chart", "median", "coverage", "marché", "tendance", "indice", "couverture"],
+    "product_compare": ["compare", "versus", " vs ", "comparison", "supplier offers", "comparer", "comparaison", "offres fournisseurs"],
+    "advisor": ["advise", "recommend", "competitive", "should we", "sourcing strategy", "conseil", "recommande", "compétitif"],
+    "price_finder": ["price", "find", "show me", "lowest", "cheapest", "supplier", "quote", "prix", "moins cher", "fournisseur", "devis"],
 }
 
 

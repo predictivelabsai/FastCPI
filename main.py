@@ -8,6 +8,8 @@ from pages.home import home_page
 from pages.about import about_page
 from pages.contact import contact_page
 from pages.legal import delete_account_page, privacy_page
+from pages.developers import developers_page
+from pages.access import access_page
 
 from starlette.responses import JSONResponse as _JSONResponse
 
@@ -49,6 +51,20 @@ def about(sess):
 @rt
 def contact(sess):
     return Page(contact_page(), active='contact', title='Contact', sess=sess)
+
+@rt('/developers')
+def developers(sess):
+    return Page(developers_page(), active='developers', title='Developers', sess=sess)
+
+@rt('/login')
+def login_page(sess):
+    from utils.i18n import get_lang
+    return Page(access_page(get_lang(sess), "login"), title='Sign In', sess=sess)
+
+@rt('/signup')
+def signup_page(sess):
+    from utils.i18n import get_lang
+    return Page(access_page(get_lang(sess), "signup"), title='Create Account', sess=sess)
 
 @rt
 def privacy(sess):
@@ -204,6 +220,7 @@ def _start_scrape_and_digest():
 # --- Mount FastAPI mobile API at /api/v1 (optional) ---
 
 _api_status = {"mounted": False, "error": None}
+api_router = None
 try:
     from api.app import api_router
     app.mount("/api/v1", api_router)
@@ -219,6 +236,37 @@ except Exception as e:
 @rt("/api-status")
 def api_status():
     return _JSONResponse(_api_status)
+
+
+@rt("/api/docs")
+def api_docs_alias():
+    return RedirectResponse("/api/v1/docs", status_code=307)
+
+
+@rt("/api/redoc")
+def api_redoc_alias():
+    return RedirectResponse("/api/v1/redoc", status_code=307)
+
+
+@rt("/api/openapi.json")
+def api_openapi_alias():
+    return _openapi_response()
+
+
+@rt("/api/openapi/v1.json")
+def api_openapi_v1():
+    return _openapi_response()
+
+
+@rt("/swagger.json")
+def swagger_schema():
+    return _openapi_response()
+
+
+def _openapi_response():
+    if api_router is None:
+        return _JSONResponse({"error": "API unavailable"}, status_code=503)
+    return _JSONResponse(api_router.openapi())
 
 
 # --- Initialize DB on startup ---

@@ -21,21 +21,24 @@ def _search_web_prices(**kwargs) -> str:
     result = search_web_prices(args.query, args.market, limit=args.limit, fetch_pages=True)
     artifact = {
         "kind": "prices", "title": f"Observed prices · {args.market.upper()}",
-        "subtitle": result["coverage_statement"], "offers": result["offers"],
-        "discoveries": result["discovery_only"],
+        "subtitle": result["coverage_statement"], "offers": result["offers"][:3],
+        "discoveries": result["discovery_only"][:5],
+        "offer_count": len(result["offers"]),
+        "discovery_count": len(result["discovery_only"]),
     }
     lines = [result["coverage_statement"], ""]
     for offer in result["offers"]:
         lines.append(
             f"- {offer['title']}: {offer['amount']} {offer['currency']} per {offer.get('comparable_unit') or offer.get('unit')} "
-            f"({offer['url']}; captured {offer['captured_at']}; confidence {offer['confidence']:.0%})"
+            f"([source]({offer['url']}); captured {offer['captured_at']}; confidence {offer['confidence']:.0%})"
         )
     if not result["offers"]:
         lines.append("No candidate page yielded a structured, attributable price. Discovery-only pages are shown separately.")
     if result["discovery_only"]:
         lines.extend(["", "Discovery-only candidate URLs (no attributable price extracted):"])
         for candidate in result["discovery_only"][:8]:
-            lines.append(f"- {candidate.get('title') or 'Candidate'}: {candidate.get('url')}")
+            title = candidate.get("title") or "Candidate"
+            lines.append(f"- [{title}]({candidate.get('url')})")
     return f"__ARTIFACT__{json.dumps(artifact)}\n\n" + "\n".join(lines)
 
 

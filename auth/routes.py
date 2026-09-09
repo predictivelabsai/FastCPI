@@ -48,7 +48,7 @@ def register_auth_routes(rt):
     @rt("/auth/register", methods=["POST"])
     async def auth_register(request):
         from sqlalchemy import text
-        from auth.access import pending_invitation
+        from auth.access import invite_only_enabled, pending_invitation
         form = await request.form()
         email = (form.get("email") or "").strip().lower()
         password = form.get("password") or ""
@@ -71,7 +71,7 @@ def register_auth_routes(rt):
                 return JSONResponse({"error": "An account with this email already exists"}, status_code=409)
             if existing and not existing.password_hash and not invitation:
                 return JSONResponse({"error": "This account uses Google Sign-In"}, status_code=409)
-            if not existing and not invitation:
+            if invite_only_enabled() and not existing and not invitation:
                 return JSONResponse({"error": "FastCPI is invite-only. Ask an administrator for access."}, status_code=403)
 
             token = generate_token()
@@ -126,6 +126,8 @@ def register_auth_routes(rt):
 
             set_user_email(sess, row.email)
             set_user_id(sess, row.id)
+            from monitoring.starter import ensure_starter_watchlists
+            ensure_starter_watchlists(row.id)
         finally:
             db.close()
 
@@ -161,6 +163,8 @@ def register_auth_routes(rt):
 
         set_user_email(sess, row.email)
         set_user_id(sess, row.id)
+        from monitoring.starter import ensure_starter_watchlists
+        ensure_starter_watchlists(row.id)
         return JSONResponse({"ok": True, "email": row.email, "name": row.name or ""})
 
     @rt("/auth/forgot", methods=["POST"])
@@ -755,7 +759,8 @@ async function submitNotify(e) {
             else:
                 from auth.access import consume_invitation, pending_invitation
                 invitation = pending_invitation(db, email)
-                if not invitation:
+                from auth.access import invite_only_enabled
+                if invite_only_enabled() and not invitation:
                     return RedirectResponse("/?auth_error=invite_required", status_code=303)
                 result = db.execute(text(f"""
                     INSERT INTO {SCHEMA}.chat_users (email, name, is_verified)
@@ -763,11 +768,14 @@ async function submitNotify(e) {
                     RETURNING id
                 """), {"email": email, "name": name})
                 uid = result.fetchone().id
-                consume_invitation(db, email)
+                if invitation:
+                    consume_invitation(db, email)
                 db.commit()
 
             set_user_email(sess, email)
             set_user_id(sess, uid)
+            from monitoring.starter import ensure_starter_watchlists
+            ensure_starter_watchlists(uid)
         finally:
             db.close()
 

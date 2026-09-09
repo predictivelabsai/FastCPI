@@ -23,7 +23,7 @@ OAuth secrets, API keys, page snapshots containing personal data or generated ev
 
 ## Authentication and deployment
 
-Access is invite-only. OAuth uses authorization-code OIDC at `/auth/google` and
+Signup is open through Google or verified email/password registration. OAuth uses authorization-code OIDC at `/auth/google` and
 `/auth/google/callback`, requests only `openid email profile`, and validates state, issuer, audience
 and verified email. Production callback: `https://cpi.fastsme.com/auth/google/callback`.
 

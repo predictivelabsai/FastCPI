@@ -766,6 +766,9 @@
   /* Tighter padding on mobile */
   .messages { padding: 12px 12px; }
   .chat-header { padding: 8px 12px; }
+  .chat-header-left { flex: 1 1 auto; width: 0; min-width: 0; padding-left: 38px; }
+  .chat-header-title { display: block; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .chat-header-actions { flex-shrink: 0; }
   .chat-form { padding: 8px 12px 12px; }
 
   /* Keep hamburger clickable above right pane */

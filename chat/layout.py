@@ -55,6 +55,7 @@ def _head(title: str = "FastCPI") -> Head:
 def chat_page(user_email=None, sessions=None, current_sid="",
               messages=None, current_agent_slug=None, readonly=False, lang="en"):
     from utils.i18n import js_translations
+    from utils.fastcpi_i18n import app_js_translations, app_tr
     import json as _json
     from fasthtml.common import Button
     body = Body(
@@ -66,11 +67,12 @@ def chat_page(user_email=None, sessions=None, current_sid="",
         right_pane(lang=lang),
         Button(
             NotStr('<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="9" y1="3" x2="9" y2="21"/></svg>'),
-            Span("Results", cls="toggle-label"),
+            Span(app_tr("results", lang), cls="toggle-label"),
             id="right-pane-toggle-btn", cls="right-pane-toggle", onclick="toggleArtifactPane()",
         ),
-        Script(_json.dumps(js_translations(lang)), id="i18n-data", type="application/json"),
-        Script(src="/static/chat.js?v=2"),
+        Script(_json.dumps({**js_translations(lang), **app_js_translations(lang)}),
+               id="i18n-data", type="application/json"),
+        Script(src="/static/chat.js?v=4"),
         cls="bg-white text-ink font-sans antialiased app",
     )
     return Html(_head("Price Intelligence"), body)

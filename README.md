@@ -11,11 +11,17 @@ terms, and tracks observed asking-price movements. It is not an official consume
 - `/app/market-overview` — static Plotly market dashboard
 - `/app/watchlists` — user-specific daily price monitors
 - `/app/daily-scan` — latest watchlist movements
-- `/api/v1/docs` — OpenAPI documentation
+- `/developers` — API guide with Swagger, ReDoc and versioned OpenAPI links
+- `/api/docs` and `/api/redoc` — interactive API documentation
+- `/api/openapi/v1.json` — versioned OpenAPI schema
 
 Initial markets are Germany, Denmark, Estonia, Finland, France, Lithuania, Latvia, the
 Netherlands, Poland and Sweden. Queries may use plain language, CPV Version 2008 codes, SKUs,
 MPNs or GTINs.
+
+Signup is open through Google or verified email. The language selector remains available in the
+authenticated workspace. The French workspace is fully localised; agent answers follow the
+language of each latest question without translating or rewriting it for search.
 
 ## Local setup
 
@@ -51,3 +57,10 @@ observation retains its URL, extraction method, capture timestamp, evidence exce
 hash. Conflicting country-code domains are excluded from in-market rankings, while generic domains
 are labelled geographically unverified. “Lowest” means lowest observed comparable price in the
 current sample—not the entire market.
+
+See [docs/ROADMAP.md](docs/ROADMAP.md) for current limitations, the dependable-monitoring next
+slice and the read-only MCP server plan.
+
+The screenshot-led [user guide](docs/fastcpi_user_guide.md) can be regenerated as dated PDF and
+PowerPoint files with `scripts/build_user_guide.sh`. `scripts/build_demo_gif.sh` rebuilds the
+landing-page walkthrough at `static/product-demo.gif` from the reviewed `screenshots/` set.

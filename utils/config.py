@@ -32,7 +32,7 @@ class Settings(BaseSettings):
     exa_api_key: str = Field(default="", alias="EXA_API_KEY")
 
     login_enabled: bool = Field(default=False, alias="LOGIN")
-    invite_only: bool = Field(default=True, alias="INVITE_ONLY")
+    invite_only: bool = Field(default=False, alias="INVITE_ONLY")
 
 
 @lru_cache(maxsize=1)

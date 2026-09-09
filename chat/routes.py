@@ -28,6 +28,8 @@ def _ensure_user(sess) -> tuple[int | None, str | None]:
         return None, None
     uid = get_user_id(sess)
     if uid:
+        from monitoring.starter import ensure_starter_watchlists
+        ensure_starter_watchlists(uid)
         return uid, email
     from sqlalchemy import text
     db = _get_db()
@@ -43,6 +45,8 @@ def _ensure_user(sess) -> tuple[int | None, str | None]:
     finally:
         db.close()
     set_user_id(sess, uid)
+    from monitoring.starter import ensure_starter_watchlists
+    ensure_starter_watchlists(uid)
     return uid, email
 
 
@@ -130,7 +134,7 @@ def register_chat_routes(rt):
         uid, email = _ensure_user(sess)
         if not uid or not email:
             from starlette.responses import RedirectResponse
-            return RedirectResponse("/?auth_error=invite_required", status_code=303)
+            return RedirectResponse("/", status_code=303)
         sessions = _list_sessions(uid) if uid else []
         messages = []
         current_agent = None
@@ -174,7 +178,7 @@ def register_chat_routes(rt):
 
         uid, email = _ensure_user(sess)
         if not uid:
-            return JSONResponse({"error": "FastCPI is invite-only; sign in first"}, status_code=401)
+            return JSONResponse({"error": "Sign in to use FastCPI"}, status_code=401)
 
         session_id = _ensure_session(uid, sid_str, first_message=user_msg)
 
@@ -195,20 +199,13 @@ def register_chat_routes(rt):
                 "icon": spec.icon if spec else "*",
             })
 
-            from utils.i18n import get_lang, LANGUAGES
-            lang = get_lang(sess)
-            lang_info = LANGUAGES.get(lang, LANGUAGES["en"])
-            lang_directive = ""
-            if lang != "en":
-                lang_directive = (
-                    f"\nUser language: {lang} ({lang_info['name']}). "
-                    f"Respond in {lang_info['name']}."
-                )
             lc_messages = [SystemMessage(content=(
                 "You are FastCPI, a B2B web-market price intelligence assistant. "
                 "Distinguish extracted observations from discovery-only results, cite source URLs, "
-                "and never describe observed prices as complete market coverage."
-                f"{lang_directive}"
+                "and never describe observed prices as complete market coverage. "
+                "Answer in the language used by the latest user question. Do not translate or "
+                "rewrite that question before reasoning, searching, or calling tools. The selected "
+                "interface language is not an instruction about the answer language."
             ))]
             for h in history[-20:]:
                 if h["role"] == "user":

@@ -24,7 +24,7 @@ services:
       - FROM_NAME=${FROM_NAME}
       - TO_EMAIL=${TO_EMAIL}
       - LOGIN=${LOGIN}
-      - INVITE_ONLY=${INVITE_ONLY:-1}
+      - INVITE_ONLY=${INVITE_ONLY:-0}
       - JWT_SECRET=${JWT_SECRET}
       - CORS_ALLOWED_ORIGINS=${CORS_ALLOWED_ORIGINS:-https://cpi.fastsme.com}
       - ADMIN_EMAIL=${ADMIN_EMAIL}

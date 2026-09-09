@@ -58,6 +58,7 @@ def NavBar(active='home', sess=None):
         ('advisory', '/app', 'Price intelligence'),
         ('about', '/about', t('nav_about', lang)),
         ('market-map', '/app/market-overview', 'Market overview'),
+        ('developers', '/developers', 'Developers'),
         ('contact', '/contact', t('nav_contact', lang)),
     ]
 
@@ -68,7 +69,7 @@ def NavBar(active='home', sess=None):
 
     nav_links = [Li(nav_link(k, h, l)) for k, h, l in nav_items]
 
-    cta = A('Sign In', href='/auth/google',
+    cta = A(t('chat_sign_in', lang), href='/login',
             cls='inline-flex items-center px-4 py-2 rounded-full text-xs font-medium bg-black text-white hover:bg-gray-800 transition-colors no-underline cursor-pointer')
 
     return Nav(

@@ -1,9 +1,9 @@
 """FastCPI public landing page."""
 
-from fasthtml.common import A, Article, Div, H1, H2, H3, P, Section, Span
+from fasthtml.common import A, Article, Div, H1, H2, H3, Img, P, Section, Span
 
 from pricing.markets import MARKETS
-from utils.fastcpi_i18n import tr
+from utils.fastcpi_i18n import app_tr, tr
 from utils.i18n import get_lang
 
 
@@ -26,7 +26,9 @@ def home_page(sess=None):
               cls="mt-3 text-sm text-gray-500 max-w-xl leading-relaxed"),
             Div(A(tr("google", lang), href="/auth/google",
                   cls="inline-flex px-6 py-3 rounded-full text-sm font-medium no-underline bg-black text-white hover:bg-gray-800"),
-                A("API documentation", href="/api/v1/docs",
+                A("Developers", href="/developers",
+                  cls="inline-flex px-6 py-3 rounded-full text-sm font-medium no-underline border border-gray-200 text-black hover:border-black"),
+                A(app_tr("create_account", lang), href="/signup",
                   cls="inline-flex px-6 py-3 rounded-full text-sm font-medium no-underline border border-gray-200 text-black hover:border-black"),
                 cls="mt-8 flex gap-3 flex-wrap"),
             P(tr("invite", lang), cls="mt-3 text-xs text-gray-400"),
@@ -38,6 +40,12 @@ def home_page(sess=None):
             Div(Span("Source-first", cls="text-2xl font-semibold"), Span("provenance", cls="text-xs uppercase tracking-wider text-gray-400"), cls="flex flex-col"),
             cls="max-w-7xl mx-auto px-5 md:px-6 py-6 grid grid-cols-2 md:grid-cols-4 gap-7"),
             cls="border-y border-gray-100 bg-gray-50/60"),
+        Section(Div(
+            H2(app_tr("demo_title", lang), cls="text-2xl md:text-3xl font-medium mb-3"),
+            P(app_tr("demo_body", lang), cls="text-sm text-gray-500 mb-7 max-w-2xl"),
+            Img(src="/static/product-demo.gif", alt=app_tr("demo_title", lang),
+                cls="w-full rounded-2xl border border-gray-100 shadow-sm"),
+            cls="max-w-6xl mx-auto px-5 md:px-6"), cls="py-16 md:py-20"),
         Section(Div(
             H2("Procurement evidence, not an official CPI.", cls="text-2xl md:text-3xl font-medium mb-9"),
             Div(

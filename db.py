@@ -48,6 +48,8 @@ def init_db():
     if os.environ.get("ENABLE_LEGACY_CAR_ROUTES", "0") == "1":
         _init_car_tables()
     _init_price_intelligence_tables()
+    from monitoring.starter import seed_all_existing_users
+    seed_all_existing_users()
 
 
 def _init_chat_tables():
@@ -91,6 +93,7 @@ def _init_chat_tables():
         f"ALTER TABLE {SCHEMA}.chat_users ADD COLUMN IF NOT EXISTS reset_token VARCHAR(64)",
         f"ALTER TABLE {SCHEMA}.chat_users ADD COLUMN IF NOT EXISTS reset_token_expires TIMESTAMPTZ",
         f"ALTER TABLE {SCHEMA}.chat_users ADD COLUMN IF NOT EXISTS role VARCHAR(20) DEFAULT 'user'",
+        f"ALTER TABLE {SCHEMA}.chat_users ADD COLUMN IF NOT EXISTS starter_watchlists_seeded_at TIMESTAMPTZ",
     ]
     invitations_ddl = f"""CREATE TABLE IF NOT EXISTS {SCHEMA}.invitations (
         id SERIAL PRIMARY KEY,

@@ -84,7 +84,7 @@ def main() -> int:
         "APP_SECRET": current.get("APP_SECRET") or secrets.token_urlsafe(48),
         "JWT_SECRET": current.get("JWT_SECRET") or secrets.token_urlsafe(48),
         "LOGIN": "1",
-        "INVITE_ONLY": "1",
+        "INVITE_ONLY": "0",
         "CORS_ALLOWED_ORIGINS": "https://cpi.fastsme.com",
         "SERVICE_URL_FASTCPI": "https://cpi.fastsme.com",
         "EXA_API_KEY": exa_key,

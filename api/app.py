@@ -50,6 +50,7 @@ def create_app(root_path: str = "") -> FastAPI:
         docs_url="/docs",
         redoc_url="/redoc",
         openapi_url="/openapi.json",
+        servers=[{"url": "https://cpi.fastsme.com/api/v1", "description": "Production"}],
     )
 
     cors_origins = [value.strip() for value in os.environ.get(
@@ -73,7 +74,7 @@ def create_app(root_path: str = "") -> FastAPI:
 
     @api.post("/auth/register", response_model=AuthResponse, tags=["auth"])
     def register(body: RegisterRequest, db: Session = Depends(get_db)):
-        from auth.access import consume_invitation, pending_invitation
+        from auth.access import consume_invitation, invite_only_enabled, pending_invitation
         email = body.email.strip().lower()
         existing = db.execute(
             text(f"SELECT id, password_hash FROM {SCHEMA}.chat_users WHERE email = :email"),
@@ -85,7 +86,7 @@ def create_app(root_path: str = "") -> FastAPI:
             raise HTTPException(409, "An account with this email already exists")
         if existing and not existing.password_hash and not invitation:
             raise HTTPException(409, "This account uses Google Sign-In")
-        if not existing and not invitation:
+        if invite_only_enabled() and not existing and not invitation:
             raise HTTPException(403, "FastCPI is invite-only")
 
         pw_hash = hash_password(body.password)
@@ -104,8 +105,11 @@ def create_app(root_path: str = "") -> FastAPI:
                 {"email": email, "pw": pw_hash, "name": body.name},
             ).fetchone()
             uid = row[0]
-        consume_invitation(db, email)
+        if invitation:
+            consume_invitation(db, email)
         db.commit()
+        from monitoring.starter import ensure_starter_watchlists
+        ensure_starter_watchlists(uid)
         token = create_token(uid, email)
         return AuthResponse(token=token, email=email, name=body.name, user_id=uid)
 
@@ -121,6 +125,8 @@ def create_app(root_path: str = "") -> FastAPI:
         if not verify_password(body.password, row.password_hash):
             raise HTTPException(401, "Invalid email or password")
 
+        from monitoring.starter import ensure_starter_watchlists
+        ensure_starter_watchlists(row.id)
         token = create_token(row.id, row.email)
         return AuthResponse(token=token, email=row.email, name=row.name or "", user_id=row.id)
 
@@ -157,18 +163,22 @@ def create_app(root_path: str = "") -> FastAPI:
             uid = row.id
             name = row.name or name
         else:
-            from auth.access import consume_invitation, pending_invitation
-            if not pending_invitation(db, email):
+            from auth.access import consume_invitation, invite_only_enabled, pending_invitation
+            invitation = pending_invitation(db, email)
+            if invite_only_enabled() and not invitation:
                 raise HTTPException(403, "FastCPI is invite-only")
             r = db.execute(
                 text(f"INSERT INTO {SCHEMA}.chat_users (email, name, is_verified) "
                      "VALUES (:email, :name, TRUE) RETURNING id"),
                 {"email": email, "name": name},
             ).fetchone()
-            consume_invitation(db, email)
+            if invitation:
+                consume_invitation(db, email)
             db.commit()
             uid = r[0]
 
+        from monitoring.starter import ensure_starter_watchlists
+        ensure_starter_watchlists(uid)
         token = create_token(uid, email)
         return AuthResponse(token=token, email=email, name=name, user_id=uid)
 
@@ -676,8 +686,6 @@ def create_app(root_path: str = "") -> FastAPI:
 
         async def event_stream():
             from langchain_core.messages import HumanMessage, AIMessage, SystemMessage
-            from utils.i18n import LANGUAGES
-
             yield _sse_event("session", {"sid": session_id})
             yield _sse_event("agent_route", {
                 "slug": agent_slug,
@@ -685,16 +693,13 @@ def create_app(root_path: str = "") -> FastAPI:
                 "icon": spec.icon if spec else "*",
             })
 
-            lang_info = LANGUAGES.get(body.lang, LANGUAGES["en"])
-            lang_directive = ""
-            if body.lang != "en":
-                lang_directive = f"\nUser language: {body.lang} ({lang_info['name']}). Respond in {lang_info['name']}."
-
             lc_messages = [SystemMessage(content=(
                 "You are FastCPI, a B2B web-market price intelligence assistant. "
                 "Cite observed source URLs and distinguish extracted evidence from discovery-only results. "
-                "Do not claim complete market coverage or describe FastCPI as an official CPI."
-                f"{lang_directive}"
+                "Do not claim complete market coverage or describe FastCPI as an official CPI. "
+                "Answer in the language used by the latest user question. Do not translate or "
+                "rewrite that question before reasoning, searching, or calling tools. The API lang "
+                "field controls presentation metadata only; it does not control the answer language."
             ))]
             for h in history[-20:]:
                 if h["role"] == "user":

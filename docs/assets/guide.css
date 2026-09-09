@@ -1,0 +1,33 @@
+@page {
+  size: 13.333in 7.5in;
+  margin: .46in .56in .5in;
+  @bottom-left { content: "FastCPI · Source-backed price intelligence"; font-size: 8pt; color: #82908a; }
+  @bottom-right { content: "cpi.fastsme.com · " counter(page); font-size: 8pt; color: #82908a; }
+}
+html { font-size: 10.5pt; }
+body { font-family: Inter, "Helvetica Neue", Arial, sans-serif; color: #17201c; line-height: 1.48; margin: 0; }
+hr { page-break-after: always; border: 0; height: 0; margin: 0; visibility: hidden; }
+.cover { min-height: 5.95in; padding: 1.55in .75in 0; box-sizing: border-box; text-align: center; border-radius: 14px; background: #147d64; color: white; }
+.cover h1 { color: white; font-size: 44pt; margin: 0 0 .2in; letter-spacing: -.04em; }
+.cover h4 { color: #d8f3e9; font-size: 19pt; margin: .08in 0 .35in; }
+.cover p { color: #d8f3e9; font-size: 14pt; }
+.cover strong { color: white; }
+.divider { min-height: 5.95in; padding: 1.55in .85in 0 1.1in; box-sizing: border-box; border-left: .12in solid #27ad88; border-radius: 10px; background: #17201c; color: white; }
+.divider h2 { background: none; border: 0; padding: 0; color: white; font-size: 34pt; }
+.divider p { color: #cfe4dc; font-size: 17pt; max-width: 9in; }
+h1 { color: #147d64; font-size: 30pt; }
+h2 { color: white; background: #147d64; border-left: 7px solid #17201c; border-radius: 7px; font-size: 17pt; padding: .25cm .48cm; margin: 0 0 .48cm; }
+h3 { color: #147d64; font-size: 13pt; margin: .3cm 0 .12cm; }
+p { margin: .16cm 0; }
+strong { color: #0d6a54; }
+ul, ol { margin: .14cm 0 .2cm; padding-left: .78cm; }
+li { margin: .1cm 0; }
+a { color: #147d64; text-decoration: none; }
+code { background: #edf8f4; color: #0d6a54; padding: .04cm .13cm; border-radius: 3px; font-size: .88em; }
+blockquote { margin: .3cm 0; padding: .24cm .5cm; background: #edf8f4; border-left: 4px solid #147d64; color: #45534e; }
+img { display: block; float: right; max-width: 6.15in; max-height: 4.85in; margin: 0 0 .28cm .65cm; border: 1px solid #dce8e3; border-radius: 7px; }
+table { border-collapse: collapse; width: 100%; font-size: 8.7pt; }
+th { background: #147d64; color: white; text-align: left; padding: 5px 7px; }
+td { padding: 4px 7px; border: 1px solid #dce8e3; }
+tr:nth-child(even) td { background: #f4faf7; }
+h2, h3, p, ul, ol, blockquote, img { page-break-inside: avoid; }

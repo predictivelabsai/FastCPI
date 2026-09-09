@@ -10,8 +10,9 @@
 - Exa discovers candidates; FastCPI fetches pages and applies generic or source-specific parsers.
 - Discovery-only candidates remain visible beside extracted observations for comparison.
 - User watchlists scan daily.
-- Approved signups can create scoped API keys.
-- Product access is invite-only during the initial release.
+- All verified signups can create scoped API keys.
+- Signup is open through Google or verified email; quotas and abuse controls are the next
+  production-hardening slice.
 
 ## Delivery sequence
 
@@ -29,5 +30,5 @@
 
 Each displayed observation includes source URL, original price/currency, comparable basis,
 capture time and confidence/warnings. Failed extraction never becomes a price. Lowest-price claims
-are scoped to observed comparable offers. Invite enforcement, OAuth validation, API scopes,
+are scoped to observed comparable offers. Open-signup controls, OAuth validation, API scopes,
 desktop/mobile behavior, health and OpenAPI documentation must pass before release.

@@ -13,6 +13,7 @@ from starlette.responses import JSONResponse, RedirectResponse
 from chat.components import left_pane, signin_overlay
 from chat.layout import _head
 from db import SCHEMA
+from utils.fastcpi_i18n import app_tr
 from utils.session import get_user_id
 
 
@@ -20,9 +21,11 @@ def register_account_routes(rt):
     @rt("/app/account")
     def account_page(sess):
         from chat.routes import _ensure_user, _list_sessions, _get_db
+        from utils.i18n import get_lang
         uid, email = _ensure_user(sess)
         if not uid:
             return RedirectResponse("/", status_code=303)
+        lang = get_lang(sess)
         db = _get_db()
         try:
             keys = db.execute(text(f"""
@@ -33,21 +36,21 @@ def register_account_routes(rt):
             db.close()
         key_cards = [Div(Span(key.name, cls="font-semibold"), P(f"{key.key_prefix}… · {', '.join(key.scopes)}", cls="text-xs text-gray-500"), cls="p-3 border rounded-lg") for key in keys]
         body = Body(
-            signin_overlay(), Div(id="left-overlay", cls="left-overlay", onclick="toggleLeftPane()"),
-            left_pane(user_email=email, sessions=_list_sessions(uid), current_sid=""),
-            Div(Div(Div(Button("=", cls="mobile-menu-btn", onclick="toggleLeftPane()"), Span("Account & API", cls="chat-header-title"), cls="chat-header-left"),
-                    Div(A("Back to chat", href="/app", cls="header-action-btn"), cls="chat-header-actions"), cls="chat-header"),
-                Div(H2("Account", cls="text-xl font-semibold"), P(email, cls="text-sm text-gray-500 mb-6"),
-                    H2("Scoped API keys", cls="text-lg font-semibold mb-1"),
-                    P("The full key is shown once. Send it as the X-API-Key header.", cls="text-sm text-gray-500 mb-3"),
-                    Form(Input(name="name", value="Default", cls="px-3 py-2 border rounded"),
-                         Button("Create read key", type="submit", cls="ml-2 px-4 py-2 bg-black text-white rounded border-none"), id="key-form", cls="mb-3"),
+            signin_overlay(lang), Div(id="left-overlay", cls="left-overlay", onclick="toggleLeftPane()"),
+            left_pane(user_email=email, sessions=_list_sessions(uid), current_sid="", lang=lang),
+            Div(Div(Div(Button("=", cls="mobile-menu-btn", onclick="toggleLeftPane()"), Span(app_tr("account_api", lang), cls="chat-header-title"), cls="chat-header-left"),
+                    Div(A(app_tr("back_to_chat", lang), href="/app", cls="header-action-btn"), cls="chat-header-actions"), cls="chat-header"),
+                Div(H2(app_tr("account", lang), cls="text-xl font-semibold"), P(email, cls="text-sm text-gray-500 mb-6"),
+                    H2(app_tr("scoped_keys", lang), cls="text-lg font-semibold mb-1"),
+                    P(app_tr("key_intro", lang), cls="text-sm text-gray-500 mb-3"),
+                    Form(Input(name="name", value=app_tr("default", lang), cls="px-3 py-2 border rounded"),
+                         Button(app_tr("create_read_key", lang), type="submit", cls="ml-2 px-4 py-2 bg-black text-white rounded border-none"), id="key-form", cls="mb-3"),
                     Div(id="new-key", cls="hidden p-3 mb-4 bg-emerald-50 text-emerald-900 rounded text-xs break-all"),
-                    Div(*key_cards, cls="space-y-2") if key_cards else P("No API keys yet.", cls="text-sm text-gray-400"),
+                    Div(*key_cards, cls="space-y-2") if key_cards else P(app_tr("no_keys", lang), cls="text-sm text-gray-400"),
                     cls="messages"), cls="center-pane"),
-            Script("""document.getElementById('key-form').addEventListener('submit',async function(e){e.preventDefault();const r=await fetch('/app/api-keys',{method:'POST',body:new FormData(this)});const d=await r.json();const el=document.getElementById('new-key');el.classList.remove('hidden');el.textContent=d.key?'Copy now: '+d.key:(d.error||'Unable to create key');});"""),
-            Script(src="/static/chat.js?v=3"), cls="bg-white text-ink font-sans antialiased app pane-closed")
-        return Html(_head("Account & API"), body)
+            Script(f"""document.getElementById('key-form').addEventListener('submit',async function(e){{e.preventDefault();const r=await fetch('/app/api-keys',{{method:'POST',body:new FormData(this)}});const d=await r.json();const el=document.getElementById('new-key');el.classList.remove('hidden');el.textContent=d.key?{json.dumps(app_tr('copy_now', lang))}+': '+d.key:(d.error||{json.dumps(app_tr('unable_key', lang))});}});"""),
+            Script(src="/static/chat.js?v=4"), cls="bg-white text-ink font-sans antialiased app pane-closed")
+        return Html(_head(app_tr("account_api", lang)), body)
 
     @rt("/app/api-keys", methods=["POST"])
     async def create_browser_api_key(request, sess):

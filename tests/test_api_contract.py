@@ -35,6 +35,6 @@ def test_legacy_car_routes_are_not_exposed():
         assert not any(path.startswith(prefix) for path in paths)
 
 
-def test_chat_requires_an_invited_authenticated_user():
+def test_chat_requires_an_authenticated_user():
     response = TestClient(create_app()).post("/chat", json={"message": "test"})
     assert response.status_code == 401
