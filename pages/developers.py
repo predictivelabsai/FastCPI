@@ -22,37 +22,54 @@ RESOURCES = (
     ("Market overview", "Retrieve observation, source and median coverage for one market.", "GET", "/api/v1/markets/{country}/overview", "prices:read"),
     ("Price indices", "Read base-100 web-observed price-index series and their coverage.", "GET", "/api/v1/indices", "prices:read"),
     ("Watchlists", "Create and manage user-scoped daily price monitors and events.", "POST", "/api/v1/watchlists", "signed-in user"),
+    ("Observation jobs", "Queue quota-controlled live discovery and poll its durable result.", "POST", "/api/v1/observation-jobs", "prices:observe"),
+    ("MCP server", "Let LLM clients discover read-only catalogue, CPV, variance and monitoring tools.", "POST", "/mcp/", "Bearer fcpi_… · prices:read"),
 )
 
 
-def developers_page():
+FR_RESOURCES = (
+    ("Rechercher des observations", "Recherchez les observations enregistrées et sourcées sans lancer une collecte.", "GET", "/api/v1/prices/search", "prices:read"),
+    ("Observer les prix", "Lancez la découverte Exa, analysez les pages candidates et conservez les preuves attribuables.", "POST", "/api/v1/prices/observe", "prices:observe"),
+    ("Hiérarchie CPV", "Recherchez le CPV version 2008 ou développez un code général vers ses descendants.", "GET", "/api/v1/cpv/{code}/overview", "prices:read"),
+    ("Écart de prix par article", "Comparez les dernières offres fournisseurs dans un pays, avec le contexte UE en second niveau.", "GET", "/api/v1/items/{item_id}/price-variance", "prices:read"),
+    ("Vue d’un marché", "Consultez la couverture des observations, sources et prix médian pour un marché.", "GET", "/api/v1/markets/{country}/overview", "prices:read"),
+    ("Indices de prix", "Consultez les séries d’indices web base 100 et leur couverture.", "GET", "/api/v1/indices", "prices:read"),
+    ("Listes de suivi", "Créez et gérez les suivis quotidiens et événements propres à l’utilisateur.", "POST", "/api/v1/watchlists", "utilisateur connecté"),
+    ("Tâches d’observation", "Mettez en file une découverte avec quota et consultez son résultat durable.", "POST", "/api/v1/observation-jobs", "prices:observe"),
+    ("Serveur MCP", "Permettez aux LLM de découvrir les outils de catalogue, CPV, écarts et suivi en lecture seule.", "POST", "/mcp/", "Bearer fcpi_… · prices:read"),
+)
+
+
+def developers_page(lang="en"):
+    fr = lang == "fr"
+    resources = FR_RESOURCES if fr else RESOURCES
     cards = [Article(
         H3(title), P(description),
         Code(Span(method, cls="dev-method"), f" {path}", cls="dev-route"),
-        P(f"Access: {scope}", cls="dev-small"), cls="dev-card",
-    ) for title, description, method, path, scope in RESOURCES]
+        P(f"{'Accès' if fr else 'Access'}: {scope}", cls="dev-small"), cls="dev-card",
+    ) for title, description, method, path, scope in resources]
     return Div(
         Style(DEVELOPER_CSS),
         Div(
-            Span("Developer platform · API v1", cls="dev-eyebrow"),
-            H1("Build with source-backed market observations."),
-            P("Query goods and services by description, CPV code, SKU, MPN or GTIN. Every observed price retains capture time, extraction evidence and its public source URL.", cls="dev-lede"),
+            Span("Plateforme développeurs · API v1" if fr else "Developer platform · API v1", cls="dev-eyebrow"),
+            H1("Construisez avec des observations de marché sourcées." if fr else "Build with source-backed market observations."),
+            P("Interrogez les biens et services par description, code CPV, SKU, MPN ou GTIN. Chaque prix observé conserve l’heure de capture, la preuve d’extraction et l’URL publique de sa source." if fr else "Query goods and services by description, CPV code, SKU, MPN or GTIN. Every observed price retains capture time, extraction evidence and its public source URL.", cls="dev-lede"),
             Div(
                 A("Guide", href="/developers#overview", cls="dev-tab primary"),
                 A("Swagger UI", href="/api/docs", cls="dev-tab"),
                 A("ReDoc", href="/api/redoc", cls="dev-tab"),
                 A("OpenAPI v1", href="/api/openapi/v1.json", cls="dev-tab"),
-                A("Runtime OpenAPI", href="/api/openapi.json", cls="dev-tab"),
-                A("Compatibility schema", href="/swagger.json", cls="dev-tab"),
+                A("OpenAPI d’exécution" if fr else "Runtime OpenAPI", href="/api/openapi.json", cls="dev-tab"),
+                A("Schéma de compatibilité" if fr else "Compatibility schema", href="/swagger.json", cls="dev-tab"),
                 cls="dev-tabs", role="tablist", aria_label="API documentation formats",
             ),
             Div(
-                Span("Authentication. ", cls="font-semibold"),
-                "Create a scoped key under Account & API Keys, then send it in the X-API-Key header. Read and live-observation scopes are independently revocable.",
+                Span("Authentification. " if fr else "Authentication. ", cls="font-semibold"),
+                ("Créez une clé limitée dans Compte et clés API, puis envoyez-la dans l’en-tête X-API-Key. Les droits de lecture et d’observation en direct sont révocables séparément." if fr else "Create a scoped key under Account & API Keys, then send it in the X-API-Key header. Read and live-observation scopes are independently revocable."),
                 cls="dev-note", id="overview",
             ),
-            H2("API resources"), Div(*cards, cls="dev-grid"),
-            H2("Quick start"),
+            H2("Ressources API" if fr else "API resources"), Div(*cards, cls="dev-grid"),
+            H2("Démarrage rapide" if fr else "Quick start"),
             Pre(Code("""curl --get 'https://cpi.fastsme.com/api/v1/prices/search' \\
   --header 'X-API-Key: fcpi_…' \\
   --data-urlencode 'q=A4 recycled paper' \\
@@ -61,8 +78,8 @@ def developers_page():
 # Lowest always means lowest observed in the returned public-source sample.
 """), cls="dev-example"),
             Section(
-                H2("LLM and MCP discovery"),
-                P("A read-only MCP server is the next integration slice. It will expose price search, CPV lookup, market coverage, index series and methodology resources before live crawl or watchlist writes are enabled.", cls="dev-small"),
+                H2("Découverte LLM et MCP" if fr else "LLM and MCP discovery"),
+                P("Connectez un client MCP Streamable HTTP à https://cpi.fastsme.com/mcp/ avec Authorization: Bearer fcpi_…. L’alpha expose en lecture seule la recherche catalogue et CPV, l’écart de prix dans un pays, la couverture marché, les listes de suivi, l’état des analyses et la méthodologie FastCPI. L’autorisation OAuth reste prévue ; les clés limitées actuelles sont révocables séparément." if fr else "Connect a Streamable HTTP MCP client to https://cpi.fastsme.com/mcp/ and pass Authorization: Bearer fcpi_…. The alpha exposes read-only catalogue search, CPV lookup, same-country price variance, market coverage, watchlists, scan status and the FastCPI methodology resource. OAuth authorization-server support remains on the roadmap; current scoped keys are independently revocable.", cls="dev-small"),
                 id="mcp",
             ),
             cls="dev-wrap",

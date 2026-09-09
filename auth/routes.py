@@ -38,13 +38,6 @@ def _get_db():
 
 
 def register_auth_routes(rt):
-
-    @rt("/auth/register")
-    def post(request):
-        """Register a new user."""
-        import asyncio
-        return asyncio.ensure_future(_register(request))
-
     @rt("/auth/register", methods=["POST"])
     async def auth_register(request):
         from sqlalchemy import text

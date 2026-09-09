@@ -11,7 +11,9 @@ FRAMES=(
   screenshots/03-french-conversation.png
   screenshots/05-french-daily-scan.png
   screenshots/06-french-market-overview.png
-  screenshots/07-french-watchlists.png
+  screenshots/13-french-watchlist-management.png
+  screenshots/12-english-watchlist-run-history.png
+  screenshots/14-french-daily-scan-runs.png
   screenshots/10-french-account-api.png
   screenshots/08-developers-api.png
 )

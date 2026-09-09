@@ -4,8 +4,6 @@ from __future__ import annotations
 
 import json
 import logging
-import threading
-import time
 from html import escape
 
 from sqlalchemy import text
@@ -44,7 +42,7 @@ def _watchlist_alert_content(watch, events: list[tuple[str, dict]]) -> tuple[str
     return subject, html_body, "\n".join(lines).strip()
 
 
-def scan_watchlist(watchlist_id: int) -> dict:
+def scan_watchlist(watchlist_id: int, *, scan_run_id=None) -> dict:
     db = SessionLocal()
     try:
         watch = db.execute(text(f"SELECT * FROM {SCHEMA}.watchlists WHERE id=:id AND is_active=TRUE"),
@@ -67,11 +65,67 @@ def scan_watchlist(watchlist_id: int) -> dict:
               AND po.captured_at >= prior.latest - INTERVAL '10 minutes'
         """), {"watchlist": watchlist_id, "currency": watch.target_currency}).scalar()
         observed = []
+        discovered_count = 0
+        market_results = []
+        failed_markets = []
         for market in markets:
-            result = search_web_prices(watch.query, market, limit=10, fetch_pages=True)
-            result["watchlist_id"] = watchlist_id
-            result = persist_search_result(db, result, user_id=watch.user_id)
-            observed.extend(result.get("offers", []))
+            if scan_run_id:
+                db.execute(text(f"""
+                    INSERT INTO {SCHEMA}.scan_run_items
+                        (scan_run_id,market,status,attempt_count,started_at,updated_at)
+                    VALUES (:run,:market,'running',1,NOW(),NOW())
+                    ON CONFLICT (scan_run_id,market) DO UPDATE SET
+                        status='running', attempt_count=scan_run_items.attempt_count+1,
+                        started_at=COALESCE(scan_run_items.started_at,NOW()),
+                        error_code=NULL, error_message=NULL, updated_at=NOW()
+                """), {"run": scan_run_id, "market": market})
+                db.commit()
+            try:
+                result = search_web_prices(watch.query, market, limit=10, fetch_pages=True)
+                result["watchlist_id"] = watchlist_id
+                result["item_id"] = watch.item_id
+                result = persist_search_result(db, result, user_id=watch.user_id)
+                market_offers = result.get("offers", [])
+                observed.extend(market_offers)
+                discoveries = len(result.get("discoveries", []))
+                discovered_count += discoveries
+                market_results.append({
+                    "market": market, "status": "succeeded",
+                    "discoveries": discoveries, "observations": len(market_offers),
+                    "search_run_id": result.get("search_run_id"),
+                })
+                if scan_run_id:
+                    db.execute(text(f"""
+                        UPDATE {SCHEMA}.scan_run_items
+                        SET status='succeeded', search_run_id=:search_run,
+                            discovery_count=:discoveries, observation_count=:observations,
+                            observation_ids=CAST(:observation_ids AS jsonb),
+                            completed_at=NOW(), updated_at=NOW()
+                        WHERE scan_run_id=:run AND market=:market
+                    """), {
+                        "search_run": result.get("search_run_id"),
+                        "discoveries": discoveries, "observations": len(market_offers),
+                        "observation_ids": json.dumps(result.get("persisted_observation_ids", [])),
+                        "run": scan_run_id, "market": market,
+                    })
+                    db.commit()
+            except Exception as exc:
+                log.exception("watchlist %s market %s failed", watchlist_id, market)
+                failed_markets.append(market)
+                market_results.append({"market": market, "status": "failed", "error": type(exc).__name__})
+                if scan_run_id:
+                    db.execute(text(f"""
+                        UPDATE {SCHEMA}.scan_run_items
+                        SET status='failed', error_code=:code, error_message=:message,
+                            completed_at=NOW(), updated_at=NOW()
+                        WHERE scan_run_id=:run AND market=:market
+                    """), {
+                        "code": type(exc).__name__, "message": str(exc)[:2000],
+                        "run": scan_run_id, "market": market,
+                    })
+                    db.commit()
+        if failed_markets and len(failed_markets) == len(markets):
+            raise RuntimeError(f"All watch markets failed: {', '.join(failed_markets)}")
         comparable = [o["comparable_amount"] for o in observed
                       if o.get("comparable_amount") is not None
                       and o.get("comparable_currency") == watch.target_currency]
@@ -138,6 +192,9 @@ def scan_watchlist(watchlist_id: int) -> dict:
         return {
             "watchlist_id": watchlist_id,
             "markets": markets,
+            "market_results": market_results,
+            "failed_markets": failed_markets,
+            "discovered_count": discovered_count,
             "observed_offers": len(observed),
             "events": len(events),
             "notification": notification,
@@ -147,22 +204,8 @@ def scan_watchlist(watchlist_id: int) -> dict:
 
 
 def scan_due_watchlists(limit: int = 25) -> list[dict]:
-    db = SessionLocal()
-    try:
-        rows = db.execute(text(f"""
-            SELECT id FROM {SCHEMA}.watchlists
-            WHERE is_active=TRUE AND (next_run_at IS NULL OR next_run_at <= NOW())
-            ORDER BY next_run_at NULLS FIRST LIMIT :limit
-        """), {"limit": limit}).fetchall()
-    finally:
-        db.close()
-    results = []
-    for row in rows:
-        try:
-            results.append(scan_watchlist(row.id))
-        except Exception as exc:
-            log.exception("watchlist %s scan failed", row.id)
-            results.append({"watchlist_id": row.id, "error": type(exc).__name__})
+    from monitoring.jobs import queue_and_work
+    results = queue_and_work(limit)
     if results:
         try:
             from scripts.compute_price_indices import compute_indices
@@ -173,11 +216,5 @@ def scan_due_watchlists(limit: int = 25) -> list[dict]:
 
 
 def start_scheduler(interval_seconds: int = 3600) -> None:
-    def loop():
-        while True:
-            try:
-                scan_due_watchlists()
-            except Exception:
-                log.exception("watchlist scheduler iteration failed")
-            time.sleep(max(300, interval_seconds))
-    threading.Thread(target=loop, name="fastcpi-watchlists", daemon=True).start()
+    from monitoring.jobs import start_job_worker
+    start_job_worker(interval_seconds)

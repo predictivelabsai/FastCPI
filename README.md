@@ -15,6 +15,8 @@ terms, and tracks observed asking-price movements. It is not an official consume
 - `/api/docs` and `/api/redoc` — interactive API documentation
 - `/api/openapi/v1.json` — versioned OpenAPI schema
 - `/api/v1/items/{item_id}/price-variance` — latest-offer country benchmark with EU context
+- `/api/v1/observation-jobs` — idempotent, quota-controlled asynchronous discovery
+- `/mcp/` — authenticated read-only MCP Streamable HTTP endpoint
 
 Initial markets are Germany, Denmark, Estonia, Finland, France, Lithuania, Latvia, the
 Netherlands, Poland and Sweden. Queries may use plain language, CPV Version 2008 codes, SKUs,
@@ -48,8 +50,10 @@ Unit tests are deterministic and network-free. Agent evals require the configure
 credentials and verify routing, source provenance, coverage language and global-market-claim
 guardrails.
 
-Watchlist scans run daily in production. Threshold events include the best observed source URL;
-when email is enabled, one Postmark alert is sent for that scan and the event is marked notified.
+Watchlist scans use durable PostgreSQL jobs with leases, bounded retries and per-market outcomes.
+The web process can execute them in-process, while `python -m scripts.watchlist_worker` is the
+standalone worker entry point. Threshold events include the best observed source URL; when email
+is enabled, one Postmark alert is sent for that scan and the event is marked notified.
 
 ## Evidence contract
 
@@ -59,8 +63,8 @@ hash. Conflicting country-code domains are excluded from in-market rankings, whi
 are labelled geographically unverified. “Lowest” means lowest observed comparable price in the
 current sample—not the entire market.
 
-See [docs/ROADMAP.md](docs/ROADMAP.md) for current limitations, the dependable-monitoring next
-slice and the read-only MCP server plan.
+See [docs/ROADMAP.md](docs/ROADMAP.md) for current limitations, the dedicated-worker/comparability
+next slice and the MCP OAuth plan.
 
 The screenshot-led [user guide](docs/fastcpi_user_guide.md) can be regenerated as dated PDF and
 PowerPoint files with `scripts/build_user_guide.sh`. `scripts/build_demo_gif.sh` rebuilds the

@@ -103,7 +103,8 @@ def main() -> int:
         "FROM_EMAIL": "info@fastsme.com",
         "FROM_NAME": "FastCPI",
         "WATCHLIST_SCANS_ENABLED": "1",
-        "WATCHLIST_SCAN_INTERVAL_SECONDS": "3600",
+        "WATCHLIST_SCAN_INTERVAL_SECONDS": "60",
+        "DAILY_OBSERVATION_JOB_QUOTA": "25",
         "DIGEST_ENABLED": "0",
     }
     changed = [key for key, value in values.items() if current.get(key) != value]

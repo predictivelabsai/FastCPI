@@ -13,8 +13,11 @@ def test_fastcpi_openapi_exposes_core_price_contracts():
     paths = schema["paths"]
     for path in (
         "/prices/search", "/prices/observe", "/prices/{observation_id}",
+        "/observation-jobs", "/observation-jobs/{job_id}",
         "/items", "/cpv/search", "/cpv/{code}/overview",
         "/markets/{country}/overview", "/indices", "/watchlists", "/api-keys",
+        "/watchlists/{watchlist_id}", "/watchlists/{watchlist_id}/run",
+        "/watchlists/{watchlist_id}/runs", "/scan-runs/{scan_run_id}",
     ):
         assert path in paths
     assert schema["info"]["title"] == "FastCPI API"

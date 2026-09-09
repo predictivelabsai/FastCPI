@@ -158,7 +158,7 @@ Convert recurring sourcing requirements into daily checks and review both change
 
 ## Create and manage a watch
 
-![French watchlists](../screenshots/07-french-watchlists.png)
+![French watchlists](../screenshots/13-french-watchlist-management.png)
 
 Open **Listes de suivi / Watchlists**, name the requirement, enter a description or identifier,
 choose a market and optionally set a target price. New accounts receive three examples:
@@ -168,24 +168,28 @@ choose a market and optionally set a target price. New accounts receive three ex
 - hourly technical computer support (CPV 72611000) in Estonia.
 
 Starter watches are user-specific. Deleting one is respected; it is not recreated on every login.
-The current browser UI creates and lists watches. Edit, pause, delete and run-now controls are the
-next monitoring slice; those mutations already exist in the REST API where noted in OpenAPI.
+Create your own goods or services dynamically, optionally link them to a catalogue item, and
+select one or more markets. Each watch can be edited, paused/resumed, deleted or run immediately.
+Open **Evidence and run history / Preuves et historique des analyses** to inspect durable queued,
+running, partial, successful or failed scan states and the latest clickable source evidence.
 
 ---
 
 ## Review the Daily Scan
 
-![French daily scan](../screenshots/05-french-daily-scan.png)
+![French daily scan](../screenshots/14-french-daily-scan-runs.png)
 
-Daily Scan shows active-watch count, 24-hour observations and threshold events. Each watch shows
-its latest source-backed observation or **Pending first scan / Première analyse en attente**.
+Daily Scan shows active-watch count, 24-hour scan runs, observations, threshold events and failed
+runs. Each watch shows its latest source-backed observation or **Pending first scan / Première
+analyse en attente**. Recent runs link back to their per-watch evidence history.
 
 Threshold events carry the source URL that caused the alert. Email alerts are sent only when the
 watch enables notification. Use the page as a morning exception queue: inspect missing scans,
 review price movements, open evidence, then decide whether procurement action is warranted.
 
-The pilot scheduler currently runs inside the application process. Durable queued scan runs,
-leases, retry state, domain throttling and cost quotas are the priority next slice.
+Scan requests are durable PostgreSQL jobs with idempotency keys, leases, bounded retries and
+per-market outcomes. Production worker separation, domain throttling and one shared usage ledger
+across all paid discovery paths are the next operational slice.
 
 ---
 
@@ -232,11 +236,12 @@ Open **https://cpi.fastsme.com/developers** for the resource guide and links to:
 - versioned OpenAPI at `/api/openapi/v1.json`;
 - runtime and compatibility schemas.
 
-Core resources search persisted observations, run live observations, resolve CPV descendants,
+Core resources search persisted observations, queue live observation jobs, resolve CPV descendants,
 read market coverage and indices, manage user watchlists and access catalog items. Use
 `GET /items/{item_id}/price-variance?market=FR` for the same latest-offer country benchmark and
-secondary EU context shown by the dashboard. Live discovery requires a stronger scope than
-read-only access.
+secondary EU context shown by the dashboard. Prefer `POST /observation-jobs` with an
+`Idempotency-Key`, then poll its returned status URL; it has per-user daily quota headers. Live
+discovery requires a stronger scope than read-only access.
 
 ---
 
@@ -248,10 +253,12 @@ Create an API key under **Account & API Keys**. The full `fcpi_…` value is sho
 a secret manager and send it in the `X-API-Key` header. Revoke and rotate keys independently of
 your Google/password session.
 
-The planned MCP alpha is read-only: observation search, CPV lookup, market overview, indices,
-catalog items and methodology resources over `POST /mcp`. It will reuse FastCPI’s service layer,
-tenant isolation and provenance schemas. OAuth protected-resource discovery and consent precede
-any live crawl or watchlist write tool.
+The MCP alpha is live at **https://cpi.fastsme.com/mcp/** over Streamable HTTP. Pass the same key
+as `Authorization: Bearer fcpi_…`. LLM clients can discover six read-only tools: catalogue search,
+CPV search, same-country price variance, country overview, tenant-scoped watchlists and scan-run
+status, plus `fastcpi://methodology`. The official SDK provides current and 2025-era protocol
+compatibility; OAuth authorization and consent remain the next access-control phase. No live
+crawl or watchlist mutation is exposed through MCP.
 
 See `docs/ROADMAP.md` for the complete MCP surface and staged acceptance criteria.
 
@@ -267,7 +274,8 @@ See `docs/ROADMAP.md` for the complete MCP surface and staged acceptance criteri
 6. **Export/integrate:** use scoped keys and preserve provenance fields downstream.
 
 Current gaps include JavaScript-only/PDF/quote-only sources, shallow supplier-specific parsers,
-incomplete pack/VAT/shipping/MOQ normalization and process-local scheduling. Report questionable
-evidence rather than silently treating it as comparable.
+incomplete pack/VAT/shipping/MOQ normalization, a not-yet-separated production worker and
+transitional MCP API-key authentication. Report questionable evidence rather than silently
+treating it as comparable.
 
 **Support:** use the Contact page. **API:** `/developers`. **Roadmap:** `docs/ROADMAP.md`.

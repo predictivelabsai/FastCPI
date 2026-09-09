@@ -472,6 +472,35 @@ def _init_price_intelligence_tables():
             started_at TIMESTAMPTZ DEFAULT NOW(),
             completed_at TIMESTAMPTZ
         )""",
+        f"""CREATE TABLE IF NOT EXISTS {SCHEMA}.observation_jobs (
+            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+            user_id INTEGER NOT NULL REFERENCES {SCHEMA}.chat_users(id) ON DELETE CASCADE,
+            idempotency_key VARCHAR(255) NOT NULL,
+            query TEXT NOT NULL,
+            query_type VARCHAR(20) NOT NULL,
+            query_value TEXT,
+            market VARCHAR(2) NOT NULL,
+            item_id BIGINT REFERENCES {SCHEMA}.catalog_items(id) ON DELETE SET NULL,
+            result_limit INTEGER NOT NULL DEFAULT 10,
+            fetch_pages BOOLEAN NOT NULL DEFAULT TRUE,
+            status VARCHAR(20) NOT NULL DEFAULT 'queued',
+            available_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+            lease_owner VARCHAR(120),
+            lease_expires_at TIMESTAMPTZ,
+            attempt_count INTEGER NOT NULL DEFAULT 0,
+            max_attempts INTEGER NOT NULL DEFAULT 3,
+            search_run_id UUID REFERENCES {SCHEMA}.price_search_runs(id) ON DELETE SET NULL,
+            discovery_count INTEGER NOT NULL DEFAULT 0,
+            observation_count INTEGER NOT NULL DEFAULT 0,
+            observation_ids JSONB NOT NULL DEFAULT '[]'::jsonb,
+            error_code VARCHAR(100),
+            error_message TEXT,
+            started_at TIMESTAMPTZ,
+            completed_at TIMESTAMPTZ,
+            created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+            updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+            UNIQUE(user_id,idempotency_key)
+        )""",
         f"""CREATE TABLE IF NOT EXISTS {SCHEMA}.price_indices (
             id BIGSERIAL PRIMARY KEY,
             series_key VARCHAR(255) NOT NULL,
@@ -493,6 +522,7 @@ def _init_price_intelligence_tables():
         f"""CREATE TABLE IF NOT EXISTS {SCHEMA}.watchlists (
             id BIGSERIAL PRIMARY KEY,
             user_id INTEGER NOT NULL REFERENCES {SCHEMA}.chat_users(id) ON DELETE CASCADE,
+            item_id BIGINT REFERENCES {SCHEMA}.catalog_items(id) ON DELETE SET NULL,
             name VARCHAR(255) NOT NULL,
             query TEXT NOT NULL,
             query_type VARCHAR(20) NOT NULL DEFAULT 'text',
@@ -509,6 +539,48 @@ def _init_price_intelligence_tables():
             next_run_at TIMESTAMPTZ,
             created_at TIMESTAMPTZ DEFAULT NOW(),
             updated_at TIMESTAMPTZ DEFAULT NOW()
+        )""",
+        f"""CREATE TABLE IF NOT EXISTS {SCHEMA}.scan_runs (
+            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+            watchlist_id BIGINT NOT NULL REFERENCES {SCHEMA}.watchlists(id) ON DELETE CASCADE,
+            user_id INTEGER NOT NULL REFERENCES {SCHEMA}.chat_users(id) ON DELETE CASCADE,
+            trigger VARCHAR(20) NOT NULL DEFAULT 'scheduled',
+            idempotency_key VARCHAR(255) UNIQUE NOT NULL,
+            status VARCHAR(20) NOT NULL DEFAULT 'queued',
+            scheduled_for TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+            available_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+            lease_owner VARCHAR(120),
+            lease_expires_at TIMESTAMPTZ,
+            attempt_count INTEGER NOT NULL DEFAULT 0,
+            max_attempts INTEGER NOT NULL DEFAULT 3,
+            market_count INTEGER NOT NULL DEFAULT 0,
+            discovered_count INTEGER NOT NULL DEFAULT 0,
+            observed_count INTEGER NOT NULL DEFAULT 0,
+            event_count INTEGER NOT NULL DEFAULT 0,
+            error_code VARCHAR(100),
+            error_message TEXT,
+            started_at TIMESTAMPTZ,
+            completed_at TIMESTAMPTZ,
+            created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+            updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+        )""",
+        f"""CREATE TABLE IF NOT EXISTS {SCHEMA}.scan_run_items (
+            id BIGSERIAL PRIMARY KEY,
+            scan_run_id UUID NOT NULL REFERENCES {SCHEMA}.scan_runs(id) ON DELETE CASCADE,
+            market VARCHAR(2) NOT NULL,
+            status VARCHAR(20) NOT NULL DEFAULT 'queued',
+            attempt_count INTEGER NOT NULL DEFAULT 0,
+            search_run_id UUID REFERENCES {SCHEMA}.price_search_runs(id) ON DELETE SET NULL,
+            discovery_count INTEGER NOT NULL DEFAULT 0,
+            observation_count INTEGER NOT NULL DEFAULT 0,
+            observation_ids JSONB NOT NULL DEFAULT '[]'::jsonb,
+            error_code VARCHAR(100),
+            error_message TEXT,
+            started_at TIMESTAMPTZ,
+            completed_at TIMESTAMPTZ,
+            created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+            updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+            UNIQUE(scan_run_id, market)
         )""",
         f"""CREATE TABLE IF NOT EXISTS {SCHEMA}.watchlist_events (
             id BIGSERIAL PRIMARY KEY,
@@ -545,11 +617,21 @@ def _init_price_intelligence_tables():
         f"CREATE INDEX IF NOT EXISTS idx_offers_item_market ON {SCHEMA}.offers(item_id, market, status)",
         f"CREATE INDEX IF NOT EXISTS idx_observations_offer_date ON {SCHEMA}.price_observations(offer_id, captured_at DESC)",
         f"CREATE INDEX IF NOT EXISTS idx_indices_series_date ON {SCHEMA}.price_indices(series_key, market, period_date DESC)",
+        f"CREATE INDEX IF NOT EXISTS idx_observation_jobs_claim ON {SCHEMA}.observation_jobs(status, available_at, lease_expires_at)",
+        f"CREATE INDEX IF NOT EXISTS idx_observation_jobs_user ON {SCHEMA}.observation_jobs(user_id, created_at DESC)",
         f"CREATE INDEX IF NOT EXISTS idx_watchlists_due ON {SCHEMA}.watchlists(is_active, next_run_at)",
+        f"CREATE INDEX IF NOT EXISTS idx_scan_runs_claim ON {SCHEMA}.scan_runs(status, available_at, lease_expires_at)",
+        f"CREATE INDEX IF NOT EXISTS idx_scan_runs_watchlist ON {SCHEMA}.scan_runs(watchlist_id, created_at DESC)",
+        f"CREATE INDEX IF NOT EXISTS idx_scan_run_items_run ON {SCHEMA}.scan_run_items(scan_run_id, market)",
         f"CREATE INDEX IF NOT EXISTS idx_api_keys_user ON {SCHEMA}.api_keys(user_id, revoked_at)",
+    ]
+    alters = [
+        f"ALTER TABLE {SCHEMA}.watchlists ADD COLUMN IF NOT EXISTS item_id BIGINT REFERENCES {SCHEMA}.catalog_items(id) ON DELETE SET NULL",
     ]
     with engine.connect() as conn:
         for stmt in ddl:
+            conn.execute(text(stmt))
+        for stmt in alters:
             conn.execute(text(stmt))
         for stmt in indexes:
             conn.execute(text(stmt))

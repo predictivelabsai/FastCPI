@@ -22,6 +22,18 @@ app, rt = fast_app(
 
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
+# MCP is mounted at /mcp/ and uses scoped FastCPI API keys as bearer tokens.
+_mcp_status = {"mounted": False, "error": None}
+_mcp_lifespan = None
+try:
+    from mcp_server import build_mcp_app, mcp as _mcp_server
+    app.mount("/mcp", build_mcp_app(), name="mcp")
+    _mcp_status["mounted"] = True
+except Exception as e:
+    _mcp_server = None
+    _mcp_status["error"] = f"{type(e).__name__}: {e}"
+    print(f"ERROR:    Failed to mount MCP server: {e}")
+
 
 @rt("/health")
 def health():
@@ -54,7 +66,9 @@ def contact(sess):
 
 @rt('/developers')
 def developers(sess):
-    return Page(developers_page(), active='developers', title='Developers', sess=sess)
+    from utils.i18n import get_lang
+    lang = get_lang(sess)
+    return Page(developers_page(lang), active='developers', title='Développeurs' if lang == 'fr' else 'Developers', sess=sess)
 
 @rt('/login')
 def login_page(sess):
@@ -273,6 +287,7 @@ def _openapi_response():
 
 @app.on_event("startup")
 async def startup():
+    global _mcp_lifespan
     try:
         init_db()
     except Exception as e:
@@ -280,7 +295,19 @@ async def startup():
 
     if os.environ.get("WATCHLIST_SCANS_ENABLED", "1") == "1":
         from monitoring.scanner import start_scheduler
-        start_scheduler(int(os.environ.get("WATCHLIST_SCAN_INTERVAL_SECONDS", "3600")))
+        start_scheduler(int(os.environ.get("WATCHLIST_SCAN_INTERVAL_SECONDS", "60")))
+
+    if _mcp_server is not None:
+        _mcp_lifespan = _mcp_server.session_manager.run()
+        await _mcp_lifespan.__aenter__()
+
+
+@app.on_event("shutdown")
+async def shutdown():
+    global _mcp_lifespan
+    if _mcp_lifespan is not None:
+        await _mcp_lifespan.__aexit__(None, None, None)
+        _mcp_lifespan = None
 
 
 serve(port=int(os.environ.get('PORT', 5011)), reload=False)

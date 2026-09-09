@@ -13,3 +13,10 @@ def test_developer_page_links_all_documentation_formats_and_core_resources():
         assert path in html
     assert "X-API-Key" in html
     assert "LLM and MCP discovery" in html
+    assert "/mcp/" in html
+
+
+def test_developer_page_has_complete_french_copy():
+    html = to_xml(developers_page("fr"))
+    for phrase in ("Plateforme développeurs", "Ressources API", "Découverte LLM et MCP", "Authentification"):
+        assert phrase in html

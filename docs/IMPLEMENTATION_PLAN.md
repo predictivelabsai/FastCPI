@@ -26,6 +26,17 @@
 7. Offline extraction tests, API contracts, multilingual agent evals and browser regression.
 8. Google/Coolify configuration and production verification at `cpi.fastsme.com`.
 
+## Shipped platform extension — 2026-09-09
+
+- Durable watch and observation jobs with PostgreSQL leases, retries and idempotency.
+- Full watchlist management and evidence/run history in the English and French workspace.
+- Quota-controlled async observation API with status polling and cursor history.
+- Read-only MCP Streamable HTTP alpha at `/mcp/` using scoped API keys as bearer tokens.
+
+The next implementation slice is dedicated-worker deployment, shared discovery metering, pilot
+supplier adapters and comparable-offer exclusion rules. See `docs/ROADMAP.md` for acceptance
+criteria and the OAuth/webhook follow-on.
+
 ## Release criteria
 
 Each displayed observation includes source URL, original price/currency, comparable basis,

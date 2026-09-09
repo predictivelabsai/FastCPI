@@ -11,8 +11,9 @@ import logging
 import secrets
 import hashlib
 import os
+from uuid import UUID
 
-from fastapi import FastAPI, Depends, HTTPException
+from fastapi import FastAPI, Depends, Header, HTTPException, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 from sqlalchemy import text
@@ -31,7 +32,7 @@ from api.schemas import (
     ListingOut,
     AnalyticsRequest, AnalyticsResponse,
     ContactRequest,
-    PriceSearchRequest, WatchlistCreateRequest, WatchlistUpdateRequest,
+    PriceSearchRequest, ObservationJobRequest, WatchlistCreateRequest, WatchlistUpdateRequest,
     ApiKeyCreateRequest, CatalogItemCreateRequest,
 )
 from api.deps import get_db, get_current_user, get_api_principal, require_scope
@@ -265,6 +266,109 @@ def create_app(root_path: str = "") -> FastAPI:
             log.exception("price observation failed")
             raise HTTPException(502, f"Price discovery failed: {type(exc).__name__}") from exc
 
+    @api.post("/observation-jobs", status_code=202, tags=["observation-jobs"])
+    def create_observation_job_endpoint(
+        body: ObservationJobRequest,
+        response: Response,
+        idempotency_key: str | None = Header(default=None, alias="Idempotency-Key"),
+        principal: dict = Depends(get_api_principal),
+        db: Session = Depends(get_db),
+    ):
+        """Queue a durable, quota-controlled observation job."""
+        require_scope(principal, "prices:observe")
+        quota = max(1, int(os.environ.get("DAILY_OBSERVATION_JOB_QUOTA", "25")))
+        if idempotency_key:
+            existing = db.execute(text(f"""
+                SELECT * FROM {SCHEMA}.observation_jobs
+                WHERE user_id=:uid AND idempotency_key=:key
+            """), {"uid": principal["user_id"], "key": idempotency_key}).fetchone()
+            if existing:
+                response.headers["Location"] = f"/api/v1/observation-jobs/{existing.id}"
+                response.headers["X-RateLimit-Limit"] = str(quota)
+                return {"job": dict(existing._mapping), "created": False}
+        used = db.execute(text(f"""
+            SELECT COUNT(*) FROM {SCHEMA}.observation_jobs
+            WHERE user_id=:uid AND created_at >= NOW()-INTERVAL '24 hours'
+        """), {"uid": principal["user_id"]}).scalar() or 0
+        if used >= quota:
+            raise HTTPException(429, "Daily observation job quota exhausted", headers={
+                "Retry-After": "3600", "X-RateLimit-Limit": str(quota), "X-RateLimit-Remaining": "0",
+            })
+        from pricing.jobs import create_observation_job
+        try:
+            job, created = create_observation_job(
+                db, user_id=principal["user_id"], query=body.query,
+                market=body.market, limit=body.limit, fetch_pages=body.fetch_pages,
+                item_id=body.item_id, idempotency_key=idempotency_key,
+            )
+        except ValueError as exc:
+            raise HTTPException(422, str(exc)) from exc
+        response.headers["Location"] = f"/api/v1/observation-jobs/{job['id']}"
+        response.headers["X-RateLimit-Limit"] = str(quota)
+        response.headers["X-RateLimit-Remaining"] = str(max(0, quota - used - int(created)))
+        return {"job": job, "created": created}
+
+    @api.get("/observation-jobs", tags=["observation-jobs"])
+    def list_observation_jobs(
+        limit: int = 50,
+        cursor: UUID | None = None,
+        principal: dict = Depends(get_api_principal),
+        db: Session = Depends(get_db),
+    ):
+        require_scope(principal, "prices:observe")
+        before = None
+        if cursor:
+            before = db.execute(text(f"""
+                SELECT created_at FROM {SCHEMA}.observation_jobs
+                WHERE id=:id AND user_id=:uid
+            """), {"id": str(cursor), "uid": principal["user_id"]}).scalar()
+            if before is None:
+                raise HTTPException(404, "Observation job cursor not found")
+        page_size = min(max(limit, 1), 100)
+        rows = db.execute(text(f"""
+            SELECT * FROM {SCHEMA}.observation_jobs
+            WHERE user_id=:uid AND (CAST(:before AS timestamptz) IS NULL OR created_at < CAST(:before AS timestamptz))
+            ORDER BY created_at DESC,id DESC LIMIT :limit
+        """), {"uid": principal["user_id"], "before": before, "limit": page_size + 1}).fetchall()
+        has_more = len(rows) > page_size
+        rows = rows[:page_size]
+        return {
+            "jobs": [dict(row._mapping) for row in rows],
+            "next_cursor": str(rows[-1].id) if has_more and rows else None,
+        }
+
+    @api.get("/observation-jobs/{job_id}", tags=["observation-jobs"])
+    def get_observation_job(
+        job_id: UUID,
+        principal: dict = Depends(get_api_principal),
+        db: Session = Depends(get_db),
+    ):
+        require_scope(principal, "prices:observe")
+        job = db.execute(text(f"""
+            SELECT * FROM {SCHEMA}.observation_jobs WHERE id=:id AND user_id=:uid
+        """), {"id": str(job_id), "uid": principal["user_id"]}).fetchone()
+        if not job:
+            raise HTTPException(404, "Observation job not found")
+        observations = db.execute(text(f"""
+            SELECT po.id AS observation_id,po.amount_original,po.currency_original,
+                   po.amount_comparable,po.currency_comparable,po.unit_comparable,
+                   po.confidence,po.warnings,po.captured_at,po.extraction_method,
+                   o.title,o.seller_name,o.source_url,o.market,ps.domain AS source_domain
+            FROM {SCHEMA}.price_observations po
+            JOIN {SCHEMA}.offers o ON o.id=po.offer_id
+            JOIN {SCHEMA}.price_sources ps ON ps.id=o.source_id
+            WHERE po.id IN (
+                SELECT CAST(value AS BIGINT)
+                FROM jsonb_array_elements_text(CAST(:ids AS jsonb)) AS value
+            )
+            ORDER BY po.amount_comparable NULLS LAST,po.captured_at DESC
+        """), {"ids": json.dumps(job.observation_ids or [])}).fetchall()
+        return {
+            "job": dict(job._mapping),
+            "observations": [dict(row._mapping) for row in observations],
+            "coverage_statement": "Observed public sources; not complete market coverage.",
+        }
+
     @api.get("/prices/{observation_id}", tags=["prices"])
     def get_price_observation(
         observation_id: int,
@@ -470,16 +574,21 @@ def create_app(root_path: str = "") -> FastAPI:
             markets = [normalize_market(m) for m in body.markets]
         except ValueError as exc:
             raise HTTPException(422, str(exc)) from exc
+        if body.item_id is not None and not db.execute(text(f"""
+            SELECT 1 FROM {SCHEMA}.catalog_items WHERE id=:id
+        """), {"id": body.item_id}).fetchone():
+            raise HTTPException(422, "Catalogue item not found")
         row = db.execute(text(f"""
             INSERT INTO {SCHEMA}.watchlists
-                (user_id, name, query, query_type, query_value, markets, cpv_code,
+                (user_id, item_id, name, query, query_type, query_value, markets, cpv_code,
                  target_price, target_currency, change_threshold_pct, notify_email,
                  next_run_at)
-            VALUES (:uid, :name, :query, :kind, :value, CAST(:markets AS jsonb), :cpv,
+            VALUES (:uid, :item_id, :name, :query, :kind, :value, CAST(:markets AS jsonb), :cpv,
                     :target, :currency, :change, :notify, NOW())
             RETURNING *
         """), {
-            "uid": user["user_id"], "name": body.name, "query": body.query,
+            "uid": user["user_id"], "item_id": body.item_id,
+            "name": body.name, "query": body.query,
             "kind": identity.kind, "value": identity.value,
             "markets": json.dumps(markets), "cpv": identity.value if identity.kind == "cpv" else None,
             "target": body.target_price, "currency": body.target_currency.upper(),
@@ -491,12 +600,34 @@ def create_app(root_path: str = "") -> FastAPI:
     @api.patch("/watchlists/{watchlist_id}", tags=["watchlists"])
     def update_watchlist(watchlist_id: int, body: WatchlistUpdateRequest,
                          user: dict = Depends(get_current_user), db: Session = Depends(get_db)):
+        from pricing.identifiers import classify_query
+        from pricing.markets import normalize_market
         values = body.model_dump(exclude_unset=True)
-        allowed = {"name", "target_price", "change_threshold_pct", "notify_email", "is_active"}
+        allowed = {"name", "query", "markets", "target_price", "change_threshold_pct", "notify_email", "is_active", "item_id"}
         values = {k: v for k, v in values.items() if k in allowed}
         if not values:
             raise HTTPException(422, "No supported fields supplied")
-        setters = [f"{key} = :{key}" for key in values]
+        if "markets" in values:
+            try:
+                values["markets"] = json.dumps([normalize_market(m) for m in values["markets"]])
+            except ValueError as exc:
+                raise HTTPException(422, str(exc)) from exc
+        if "query" in values:
+            identity = classify_query(values["query"])
+            values.update({
+                "query_type": identity.kind, "query_value": identity.value,
+                "cpv_code": identity.value if identity.kind == "cpv" else None,
+            })
+        if "item_id" in values and values["item_id"] is not None and not db.execute(text(f"""
+            SELECT 1 FROM {SCHEMA}.catalog_items WHERE id=:id
+        """), {"id": values["item_id"]}).fetchone():
+            raise HTTPException(422, "Catalogue item not found")
+        setters = [
+            f"{key} = CAST(:{key} AS jsonb)" if key == "markets" else f"{key} = :{key}"
+            for key in values
+        ]
+        if "query" in values or "markets" in values or values.get("is_active") is True:
+            setters.append("next_run_at = NOW()")
         values.update({"id": watchlist_id, "uid": user["user_id"]})
         row = db.execute(text(f"""
             UPDATE {SCHEMA}.watchlists SET {', '.join(setters)}, updated_at=NOW()
@@ -506,6 +637,57 @@ def create_app(root_path: str = "") -> FastAPI:
             raise HTTPException(404, "Watchlist not found")
         db.commit()
         return dict(row._mapping)
+
+    @api.get("/watchlists/{watchlist_id}", tags=["watchlists"])
+    def get_watchlist(watchlist_id: int, user: dict = Depends(get_current_user), db: Session = Depends(get_db)):
+        row = db.execute(text(f"""
+            SELECT w.*, ci.name AS item_name
+            FROM {SCHEMA}.watchlists w
+            LEFT JOIN {SCHEMA}.catalog_items ci ON ci.id=w.item_id
+            WHERE w.id=:id AND w.user_id=:uid
+        """), {"id": watchlist_id, "uid": user["user_id"]}).fetchone()
+        if not row:
+            raise HTTPException(404, "Watchlist not found")
+        return dict(row._mapping)
+
+    @api.post("/watchlists/{watchlist_id}/run", status_code=202, tags=["watchlists", "scan-runs"])
+    def run_watchlist(watchlist_id: int, user: dict = Depends(get_current_user), db: Session = Depends(get_db)):
+        watch = db.execute(text(f"""
+            SELECT id,user_id FROM {SCHEMA}.watchlists
+            WHERE id=:id AND user_id=:uid AND is_active=TRUE
+        """), {"id": watchlist_id, "uid": user["user_id"]}).fetchone()
+        if not watch:
+            raise HTTPException(404, "Active watchlist not found")
+        from monitoring.jobs import enqueue_watchlist_scan
+        run = enqueue_watchlist_scan(db, watch.id, watch.user_id, trigger="api")
+        return {"scan_run_id": str(run["id"]), "status": run["status"], "status_url": f"/api/v1/scan-runs/{run['id']}"}
+
+    @api.get("/watchlists/{watchlist_id}/runs", tags=["watchlists", "scan-runs"])
+    def watchlist_runs(watchlist_id: int, limit: int = 50,
+                       user: dict = Depends(get_current_user), db: Session = Depends(get_db)):
+        if not db.execute(text(f"""
+            SELECT 1 FROM {SCHEMA}.watchlists WHERE id=:id AND user_id=:uid
+        """), {"id": watchlist_id, "uid": user["user_id"]}).fetchone():
+            raise HTTPException(404, "Watchlist not found")
+        rows = db.execute(text(f"""
+            SELECT * FROM {SCHEMA}.scan_runs
+            WHERE watchlist_id=:id AND user_id=:uid
+            ORDER BY created_at DESC LIMIT :limit
+        """), {"id": watchlist_id, "uid": user["user_id"], "limit": min(max(limit, 1), 200)}).fetchall()
+        return [dict(row._mapping) for row in rows]
+
+    @api.get("/scan-runs/{scan_run_id}", tags=["scan-runs"])
+    def get_scan_run(scan_run_id: UUID, user: dict = Depends(get_current_user), db: Session = Depends(get_db)):
+        run = db.execute(text(f"""
+            SELECT * FROM {SCHEMA}.scan_runs WHERE id=CAST(:id AS uuid) AND user_id=:uid
+        """), {"id": str(scan_run_id), "uid": user["user_id"]}).fetchone()
+        if not run:
+            raise HTTPException(404, "Scan run not found")
+        items = db.execute(text(f"""
+            SELECT * FROM {SCHEMA}.scan_run_items
+            WHERE scan_run_id=CAST(:id AS uuid) ORDER BY market
+        """), {"id": str(scan_run_id)}).fetchall()
+        return {"run": dict(run._mapping), "items": [dict(row._mapping) for row in items]}
 
     @api.delete("/watchlists/{watchlist_id}", tags=["watchlists"])
     def delete_watchlist(watchlist_id: int, user: dict = Depends(get_current_user), db: Session = Depends(get_db)):

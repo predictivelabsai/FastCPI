@@ -20,6 +20,8 @@ requests==2.32.3
 # Mobile API (optional — monolith works without these)
 fastapi==0.136.3
 email-validator==2.2.0
+# Model Context Protocol (Streamable HTTP, read-only alpha)
+mcp==2.2.0
 # Testing
 pytest==8.4.1
 pytest-asyncio==1.0.0

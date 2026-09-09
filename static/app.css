@@ -1040,6 +1040,76 @@
   .source-card-meta { width: 100%; margin-left: 0; }
   .variance-chart { min-height: 320px; }
 }
+
+/* -- Full watchlist controls and durable scan history -- */
+.watch-workspace { max-width: 1040px; width: 100%; margin: 0 auto; }
+.watch-create-form {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 9px;
+  margin-bottom: 22px;
+  padding: 14px;
+  border: 1px solid #dfe8e3;
+  border-radius: 12px;
+  background: #f7faf8;
+}
+.watch-create-input, .watch-edit-input {
+  width: 100%; min-width: 0; padding: 9px 10px; border: 1px solid #ced9d3;
+  border-radius: 7px; background: #fff; color: #17201c; font-size: 12px;
+}
+.watch-create-input.wide, .watch-edit-field.wide { grid-column: 1 / -1; }
+.watch-create-input.multi, .watch-edit-input.multi { min-height: 82px; padding: 6px; }
+.watch-create-button {
+  padding: 10px 16px; border: none; border-radius: 7px; background: #17201c;
+  color: #fff; font-size: 12px; font-weight: 700; cursor: pointer;
+}
+.watch-email-toggle { display: flex; align-items: center; gap: 5px; color: #52615b; font-size: 11px; }
+.watch-card-list { display: grid; gap: 10px; }
+.watch-card { padding: 15px; border: 1px solid #dfe7e3; border-radius: 11px; background: #fff; }
+.watch-card-title { font-size: 14px; font-weight: 700; }
+.watch-status { display: inline-flex; margin-left: 8px; padding: 3px 7px; border-radius: 999px; font-size: 9px; font-weight: 700; text-transform: uppercase; }
+.watch-status.active { color: #08644e; background: #e1f4ec; }
+.watch-status.paused { color: #6b7280; background: #eef0f2; }
+.watch-card-query { margin-top: 4px; color: #53615b; font-size: 12px; }
+.watch-card-meta { display: flex; flex-wrap: wrap; gap: 6px 16px; margin-top: 7px; color: #839089; font-size: 9px; }
+.watch-card-actions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
+.watch-action {
+  padding: 6px 9px; border: 1px solid #d4ded9; border-radius: 6px; background: #fff;
+  color: #43534c; font-size: 10px; font-weight: 600; text-decoration: none; cursor: pointer;
+}
+.watch-action:hover { border-color: #9fb7ac; color: #17201c; }
+.watch-action.primary { border-color: #147d64; background: #147d64; color: #fff; }
+.watch-action.danger { color: #a23d3d; }
+.watch-action:disabled { opacity: .4; cursor: not-allowed; }
+.watch-edit-form {
+  grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 9px; margin-top: 14px;
+  padding-top: 14px; border-top: 1px solid #e7ece9;
+}
+.watch-edit-label { display: block; margin-bottom: 4px; color: #6b7771; font-size: 9px; font-weight: 700; text-transform: uppercase; }
+.watch-edit-actions { display: flex; align-items: end; gap: 6px; }
+.watch-detail-hero { padding: 18px; border: 1px solid #dce7e2; border-radius: 12px; background: #f7faf8; }
+.watch-detail-title { margin-top: 7px; font-family: 'DM Serif Display', Georgia, serif; font-size: 25px; }
+.watch-detail-section { margin: 24px 0 9px; font-size: 14px; font-weight: 700; }
+.scan-run-list, .watch-evidence-list { display: grid; gap: 8px; }
+.scan-run-card, .watch-evidence-card { padding: 12px; border: 1px solid #e0e8e4; border-radius: 9px; background: #fff; }
+.scan-run-head, .watch-evidence-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.scan-status { padding: 3px 7px; border-radius: 999px; background: #edf1ef; color: #56645e; font-size: 9px; font-weight: 700; text-transform: uppercase; }
+.scan-status.succeeded { color: #08644e; background: #e1f4ec; }
+.scan-status.running, .scan-status.queued, .scan-status.retry { color: #805c12; background: #fff3d8; }
+.scan-status.failed { color: #9b3434; background: #fde8e8; }
+.scan-run-time, .scan-run-meta, .watch-evidence-meta { color: #84918b; font-size: 9px; }
+.scan-run-meta { margin-top: 7px; }
+.scan-run-error { margin-top: 6px; color: #a13f3f; font-size: 10px; }
+.watch-evidence-supplier { font-size: 12px; font-weight: 700; }
+.watch-evidence-price { color: #08785d; font-size: 13px; font-weight: 700; }
+.watch-evidence-title { margin-top: 5px; color: #52615b; font-size: 11px; }
+.watch-evidence-meta { margin-top: 5px; }
+
+@media (max-width: 640px) {
+  .watch-create-form, .watch-edit-form { grid-template-columns: 1fr; }
+  .watch-create-input.wide, .watch-edit-field.wide { grid-column: auto; }
+  .scan-run-head, .watch-evidence-head { align-items: flex-start; }
+}
 @media (max-width: 768px) {
   .chat-chart { margin-left: 12px; margin-right: 12px; }
   .visuals-grid { grid-template-columns: 1fr; }

@@ -241,6 +241,9 @@ class PriceSearchRequest(BaseModel):
     fetch_pages: bool = True
     item_id: int | None = Field(default=None, gt=0)
 
+class ObservationJobRequest(PriceSearchRequest):
+    """Asynchronous source observation request."""
+
 class WatchlistCreateRequest(BaseModel):
     name: str = Field(min_length=1, max_length=255)
     query: str = Field(min_length=2, max_length=500)
@@ -249,13 +252,17 @@ class WatchlistCreateRequest(BaseModel):
     target_currency: str = Field(default="EUR", pattern="^EUR$")
     change_threshold_pct: float | None = Field(default=None, gt=0)
     notify_email: bool = True
+    item_id: int | None = Field(default=None, gt=0)
 
 class WatchlistUpdateRequest(BaseModel):
     name: str | None = Field(default=None, min_length=1, max_length=255)
+    query: str | None = Field(default=None, min_length=2, max_length=500)
+    markets: list[str] | None = Field(default=None, min_length=1, max_length=10)
     target_price: float | None = Field(default=None, gt=0)
     change_threshold_pct: float | None = Field(default=None, gt=0)
     notify_email: bool | None = None
     is_active: bool | None = None
+    item_id: int | None = Field(default=None, gt=0)
 
 class ApiKeyCreateRequest(BaseModel):
     name: str = Field(default="Default", min_length=1, max_length=100)
