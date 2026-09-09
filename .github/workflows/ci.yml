@@ -9,7 +9,7 @@ jobs:
   test:
     runs-on: ubuntu-latest
     env:
-      DB_URL: sqlite:///:memory:
+      DB_URL: "sqlite:///:memory:"
       WATCHLIST_SCANS_ENABLED: "0"
     steps:
       - uses: actions/checkout@v4
