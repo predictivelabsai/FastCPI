@@ -330,6 +330,8 @@ def register_auth_routes(rt):
 
     @rt("/app/profile")
     def profile_page(sess):
+        # FastCPI replaced CarHero vehicle preferences with its account/API workspace.
+        return RedirectResponse("/app/account", status_code=303)
         from sqlalchemy import text
         import json as _json
         email = get_user_email(sess)
@@ -538,6 +540,7 @@ async function submitNotify(e) {
 
     @rt("/app/profile", methods=["POST"])
     async def profile_update(request, sess):
+        return JSONResponse({"error": "Use /app/account"}, status_code=410)
         from sqlalchemy import text
         import json as _json
         uid = get_user_id(sess)
@@ -592,6 +595,7 @@ async function submitNotify(e) {
 
     @rt("/api/user-profile", methods=["POST"])
     async def update_user_prefs(request, sess):
+        return JSONResponse({"error": "CarHero preferences are not part of FastCPI"}, status_code=410)
         from sqlalchemy import text
         import json as _json
         uid = get_user_id(sess)

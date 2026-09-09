@@ -5,7 +5,7 @@ import pytest
 from pricing.extractors import _get_with_safe_redirects, extract_html, validate_public_url
 from pricing.identifiers import classify_query, cpv_prefix
 from pricing.normalization import normalize_price
-from pricing.service import search_web_prices
+from pricing.service import search_web_prices, source_market_assessment
 
 
 def test_identifier_precedence_and_cpv_hierarchy():
@@ -100,6 +100,18 @@ def test_visible_hourly_service_fallback():
     assert offer.extraction_method == "visible-hourly-rate"
 
 
+def test_source_market_assessment_rejects_conflicting_country_domains():
+    assert source_market_assessment("https://supplier.fr/item", "FR") == (
+        "country-domain-match", None,
+    )
+    status, warning = source_market_assessment("https://supplier.mx/item", "FR")
+    assert status == "country-domain-conflict"
+    assert ".mx" in warning
+    assert source_market_assessment("https://supplier.com/item", "FR") == (
+        "unverified-domain", None,
+    )
+
+
 def test_fetcher_rejects_private_and_non_http_urls():
     with pytest.raises(ValueError):
         validate_public_url("http://127.0.0.1/admin")
@@ -151,3 +163,25 @@ def test_search_separates_observed_from_discovery_only(monkeypatch):
     result = search_web_prices("paper", "FR")
     assert len(result["offers"]) == 1
     assert [row["url"] for row in result["discovery_only"]] == ["https://supplier.example/candidate"]
+
+
+def test_search_does_not_rank_a_conflicting_country_domain(monkeypatch):
+    from pricing.extractors import ExtractedOffer
+
+    monkeypatch.setattr(
+        "pricing.service.discover",
+        lambda *args, **kwargs: [{"url": "https://supplier.mx/paper", "title": "Cheap paper"}],
+    )
+    monkeypatch.setattr(
+        "pricing.service.fetch_and_extract",
+        lambda url: ExtractedOffer(url=url, amount=1, currency="EUR"),
+    )
+    monkeypatch.setattr(
+        "pricing.service.to_eur",
+        lambda amount, currency: (amount, 1, __import__("datetime").date.today()),
+    )
+
+    result = search_web_prices("paper", "FR")
+
+    assert result["offers"] == []
+    assert result["extraction_failures"][0]["reason"] == "source market conflict"

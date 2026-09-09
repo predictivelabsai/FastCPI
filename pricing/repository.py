@@ -60,7 +60,11 @@ def persist_search_result(db, result: dict, *, user_id: int | None = None) -> di
             "url": offer["url"],
             "market": result["market"],
             "availability": offer.get("availability"),
-            "terms": json.dumps({"sku": offer.get("sku"), "gtin": offer.get("gtin")}),
+            "terms": json.dumps({
+                "sku": offer.get("sku"),
+                "gtin": offer.get("gtin"),
+                "market_status": offer.get("market_status", "unverified-domain"),
+            }),
         }).fetchone()
         observation = db.execute(text(f"""
             INSERT INTO {SCHEMA}.price_observations

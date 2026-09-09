@@ -32,6 +32,10 @@ def _search_web_prices(**kwargs) -> str:
         )
     if not result["offers"]:
         lines.append("No candidate page yielded a structured, attributable price. Discovery-only pages are shown separately.")
+    if result["discovery_only"]:
+        lines.extend(["", "Discovery-only candidate URLs (no attributable price extracted):"])
+        for candidate in result["discovery_only"][:8]:
+            lines.append(f"- {candidate.get('title') or 'Candidate'}: {candidate.get('url')}")
     return f"__ARTIFACT__{json.dumps(artifact)}\n\n" + "\n".join(lines)
 
 

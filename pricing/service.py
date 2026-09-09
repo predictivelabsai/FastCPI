@@ -17,6 +17,24 @@ from pricing.normalization import normalize_price
 log = logging.getLogger(__name__)
 
 
+def source_market_assessment(url: str, market_code: str) -> tuple[str, str | None]:
+    """Classify geographic evidence without pretending generic domains prove locality.
+
+    A conflicting country-code TLD is strong negative evidence. Generic and ``.eu``
+    domains remain usable, but are explicitly marked as unverified rather than local.
+    """
+    hostname = (urlparse(url).hostname or "").lower().rstrip(".")
+    suffix = hostname.rsplit(".", 1)[-1] if "." in hostname else ""
+    if len(suffix) == 2 and suffix != "eu":
+        if suffix.upper() == market_code:
+            return "country-domain-match", None
+        return (
+            "country-domain-conflict",
+            f"Source country domain .{suffix} conflicts with requested market {market_code}",
+        )
+    return "unverified-domain", None
+
+
 def search_web_prices(
     query: str,
     market: str,
@@ -52,6 +70,9 @@ def search_web_prices(
                 offer = asdict(extracted)
                 comparable_eur = fx_rate = fx_date = None
                 warnings = list(normalized.warnings)
+                market_status, market_warning = source_market_assessment(extracted.url, market_code)
+                if market_warning:
+                    warnings.append(market_warning)
                 if normalized.comparable_amount is not None:
                     try:
                         comparable_eur, fx_rate, fx_date = to_eur(normalized.comparable_amount, normalized.currency)
@@ -66,7 +87,15 @@ def search_web_prices(
                     "fx_rate": float(fx_rate) if fx_rate is not None else None,
                     "fx_rate_date": fx_date.isoformat() if fx_date is not None else None,
                     "warnings": warnings,
+                    "market_status": market_status,
                 })
+                if market_status == "country-domain-conflict":
+                    failures.append({
+                        "url": url,
+                        "reason": "source market conflict",
+                        "detail": market_warning,
+                    })
+                    continue
                 offers.append(offer)
             except Exception as exc:
                 log.info("price extraction failed for %s: %s", url, exc)

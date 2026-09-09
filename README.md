@@ -41,8 +41,13 @@ Unit tests are deterministic and network-free. Agent evals require the configure
 credentials and verify routing, source provenance, coverage language and global-market-claim
 guardrails.
 
+Watchlist scans run daily in production. Threshold events include the best observed source URL;
+when email is enabled, one Postmark alert is sent for that scan and the event is marked notified.
+
 ## Evidence contract
 
 API and UI results distinguish fetched **observations** from **discovery-only** candidates. Every
 observation retains its URL, extraction method, capture timestamp, evidence excerpt and content
-hash. “Lowest” means lowest observed comparable price in the current sample—not the entire market.
+hash. Conflicting country-code domains are excluded from in-market rankings, while generic domains
+are labelled geographically unverified. “Lowest” means lowest observed comparable price in the
+current sample—not the entire market.
