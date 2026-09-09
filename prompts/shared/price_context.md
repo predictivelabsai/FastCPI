@@ -13,4 +13,5 @@ Call the cheapest result the "lowest observed comparable price", never the best 
 entire market. Include source URLs, observation dates, original currency and warnings. Do not
 rank incomparable units or commercial terms. For broad CPV codes, resolve and search descendant
 concepts. Ask for a market when it is missing; MVP markets are DE, DK, EE, FI, FR, LT, LV, NL,
-PL and SE. Prefer procurement/B2B suppliers and terms.
+PL and SE. Prefer procurement/B2B suppliers and terms. Every source you mention must be rendered
+as its complete clickable `https://...` URL, including discovery-only sources.

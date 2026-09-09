@@ -218,6 +218,33 @@ def _domain_offer(url: str, parser: _PageParser, body: str) -> ExtractedOffer | 
     return None
 
 
+def _visible_hourly_offer(url: str, parser: _PageParser, body: str) -> ExtractedOffer | None:
+    visible = re.sub(r"\s+", " ", html.unescape(re.sub(r"<[^>]+>", " ", body)))
+    patterns = (
+        (r"€\s*(\d+(?:[.,]\d+)?)\s*(?:/|per)\s*(?:hour|hr|h)\b", "EUR"),
+        (r"(\d+(?:[.,]\d+)?)\s*€\s*(?:/|per)\s*(?:hour|hr|h)\b", "EUR"),
+        (r"(\d+(?:[.,]\d+)?)\s*(?:SEK|kr)\s*(?:/|per)\s*(?:hour|hr|h)\b", "SEK"),
+    )
+    for pattern, currency in patterns:
+        match = re.search(pattern, visible, re.I)
+        if not match:
+            continue
+        start, end = max(0, match.start() - 160), min(len(visible), match.end() + 160)
+        return ExtractedOffer(
+            url=url,
+            title=parser.title.strip(),
+            seller=urlparse(url).netloc,
+            amount=_number(match.group(1)),
+            currency=currency,
+            unit="hour",
+            evidence=visible[start:end],
+            content_hash=hashlib.sha256(body.encode("utf-8", "ignore")).hexdigest(),
+            extraction_method="visible-hourly-rate",
+            confidence=0.72,
+        )
+    return None
+
+
 def extract_html(url: str, body: str) -> ExtractedOffer | None:
     parser = _PageParser()
     parser.feed(body)
@@ -226,6 +253,7 @@ def extract_html(url: str, body: str) -> ExtractedOffer | None:
         or _domain_offer(url, parser, body)
         or _microdata_offer(url, parser, body)
         or _metadata_offer(url, parser, body)
+        or _visible_hourly_offer(url, parser, body)
     )
 
 

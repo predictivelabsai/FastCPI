@@ -8,6 +8,7 @@ def test_routes_cpv_before_general_price_terms():
 def test_routes_identifiers_and_monitoring():
     assert route("price SKU ABC-123 in Germany") == "price_finder"
     assert route("watch A4 paper daily") == "watchlist_monitor"
+    assert route("Monitor SKU ABC-123 in Germany every day") == "watchlist_monitor"
 
 
 def test_routes_market_and_comparison():

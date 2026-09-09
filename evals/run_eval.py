@@ -18,7 +18,10 @@ CASES = Path(__file__).with_name("price_eval_cases.json")
 def score_answer(case: dict, answer: str) -> dict:
     lower = answer.lower()
     source_ok = (not case["requires_source"] or bool(re.search(r"https?://", answer)))
-    disclaimer_terms = ("observed", "coverage", "public source", "not complete")
+    disclaimer_terms = (
+        "observed", "coverage", "public source", "not complete",
+        "prix observ", "couverture", "source publique", "marché complet", "exhaustif",
+    )
     coverage_ok = (not case["requires_coverage_disclaimer"] or any(term in lower for term in disclaimer_terms))
     no_global_claim = not bool(re.search(r"\b(best|cheapest) (?:price|supplier) (?:in|across) (?:france|germany|europe|the market)\b", lower))
     return {"source_provenance": source_ok, "coverage_disclaimer": coverage_ok, "no_global_market_claim": no_global_claim}

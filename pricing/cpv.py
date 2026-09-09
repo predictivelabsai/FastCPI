@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import re
+import time
 import xml.etree.ElementTree as ET
 
 import httpx
@@ -57,12 +58,17 @@ def concept_uri(code: str) -> str:
 def fetch_official_concept(code: str, *, timeout: float = 15.0) -> dict:
     """Fetch one concept directly from the EU Publications Office SKOS service."""
     clean = "".join(c for c in code if c.isdigit())[:8]
-    response = httpx.get(
-        RESOURCE_URI.format(code=clean),
-        headers={"Accept": "application/rdf+xml", "User-Agent": "FastCPI/1.0 (+https://cpi.fastsme.com)"},
-        follow_redirects=True,
-        timeout=timeout,
-    )
+    response = None
+    for attempt in range(3):
+        response = httpx.get(
+            RESOURCE_URI.format(code=clean),
+            headers={"Accept": "application/rdf+xml", "User-Agent": "FastCPI/1.0 (+https://cpi.fastsme.com)"},
+            follow_redirects=True,
+            timeout=timeout,
+        )
+        if response.status_code not in {429, 500, 502, 503, 504} or attempt == 2:
+            break
+        time.sleep(0.5 * (attempt + 1))
     response.raise_for_status()
     root = ET.fromstring(response.content)
     about_key = f"{{{_NS['rdf']}}}about"
@@ -98,7 +104,8 @@ def import_official_tree(db, code: str, *, max_nodes: int = 500) -> list[dict]:
     The cap prevents an accidental request for the whole vocabulary from
     monopolising a web request; scheduled imports can use a higher value.
     """
-    queue = ["".join(c for c in code if c.isdigit())[:8]]
+    root_code = "".join(c for c in code if c.isdigit())[:8]
+    queue = [root_code]
     imported: list[dict] = []
     seen: set[str] = set()
     while queue and len(imported) < max_nodes:
@@ -106,7 +113,12 @@ def import_official_tree(db, code: str, *, max_nodes: int = 500) -> list[dict]:
         if current in seen:
             continue
         seen.add(current)
-        concept = fetch_official_concept(current)
+        try:
+            concept = fetch_official_concept(current)
+        except (httpx.HTTPError, ValueError):
+            if current == root_code and not imported:
+                raise
+            continue
         level = len(cpv_prefix(current))
         db.execute(text(f"""
             INSERT INTO {SCHEMA}.cpv_codes

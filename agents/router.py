@@ -39,12 +39,14 @@ def route(message: str) -> str:
     match = re.match(r"^(\w+):\s", (message or "").strip())
     if match and match.group(1).lower() in _PREFIX_MAP:
         return _PREFIX_MAP[match.group(1).lower()]
+    lower = (message or "").lower()
+    if any(keyword in lower for keyword in _KEYWORDS["watchlist_monitor"]):
+        return "watchlist_monitor"
     identity = classify_query(message)
     if identity.kind == "cpv":
         return "cpv_specialist"
     if identity.kind in {"sku", "gtin"}:
         return "price_finder"
-    lower = (message or "").lower()
     scores = {slug: sum(keyword in lower for keyword in keywords) for slug, keywords in _KEYWORDS.items()}
     best = max(scores, key=scores.get)
     return best if scores[best] else _llm_classify(message)

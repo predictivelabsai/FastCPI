@@ -90,6 +90,16 @@ def test_staver_hourly_service_adapter():
     assert offer.extraction_method == "staver-hourly-rate"
 
 
+def test_visible_hourly_service_fallback():
+    html = """<html><head><title>Business IT support</title></head>
+    <body><div>Remote support for companies: €55 per hour.</div></body></html>"""
+    offer = extract_html("https://direktsupport.eu/pricing/", html)
+    assert offer is not None
+    assert offer.amount == 55
+    assert offer.unit == "hour"
+    assert offer.extraction_method == "visible-hourly-rate"
+
+
 def test_fetcher_rejects_private_and_non_http_urls():
     with pytest.raises(ValueError):
         validate_public_url("http://127.0.0.1/admin")
