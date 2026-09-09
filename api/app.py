@@ -67,7 +67,7 @@ def create_app(root_path: str = "") -> FastAPI:
 
     @api.get("/health", tags=["health"])
     def health():
-        return {"status": "ok"}
+        return {"status": "ok", "release": os.environ.get("RELEASE_SHA", "development")}
 
     # ── Auth ──────────────────────────────────────────────────────────
 

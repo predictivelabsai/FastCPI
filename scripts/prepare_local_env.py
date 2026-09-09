@@ -75,6 +75,10 @@ def main() -> int:
 
     values = {
         "PORT": "5011",
+        "RELEASE_SHA": subprocess.run(
+            ["git", "-C", str(target.parent), "rev-parse", "HEAD"],
+            text=True, capture_output=True, check=True,
+        ).stdout.strip(),
         "DB_URL": database["DB_URL"],
         "DB_SCHEMA": "fastcpi",
         "APP_SECRET": current.get("APP_SECRET") or secrets.token_urlsafe(48),

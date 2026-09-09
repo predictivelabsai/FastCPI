@@ -23,7 +23,7 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 
 @rt("/health")
 def health():
-    return _JSONResponse({"status": "ok"})
+    return _JSONResponse({"status": "ok", "release": os.environ.get("RELEASE_SHA", "development")})
 
 
 # --- Language switching ---
