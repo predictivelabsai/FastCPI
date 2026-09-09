@@ -1,0 +1,1 @@
+"""FastCPI scheduled monitoring."""

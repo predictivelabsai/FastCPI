@@ -1,7 +1,7 @@
 {
-  "name": "CarHero",
-  "short_name": "CarHero",
-  "description": "Find the best car deals across European markets",
+  "name": "FastCPI",
+  "short_name": "FastCPI",
+  "description": "B2B web-market price observations and procurement intelligence",
   "start_url": "/app",
   "display": "standalone",
   "background_color": "#FFFFFF",

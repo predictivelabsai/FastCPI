@@ -6,13 +6,18 @@ from sqlalchemy.orm import sessionmaker, DeclarativeBase
 load_dotenv()
 
 DB_URL = os.environ["DB_URL"]
-SCHEMA = "carhero"
+SCHEMA = os.environ.get("DB_SCHEMA", "fastcpi")
 
-engine = create_engine(DB_URL, pool_pre_ping=True, pool_size=5, max_overflow=10)
+_engine_options = {"pool_pre_ping": True}
+if not DB_URL.startswith("sqlite"):
+    _engine_options.update(pool_size=5, max_overflow=10)
+engine = create_engine(DB_URL, **_engine_options)
 
 
 @event.listens_for(engine, "connect")
 def set_search_path(dbapi_conn, connection_record):
+    if engine.dialect.name != "postgresql":
+        return
     cursor = dbapi_conn.cursor()
     cursor.execute(f"SET search_path TO {SCHEMA}, public")
     cursor.close()
@@ -40,7 +45,9 @@ def init_db():
         conn.commit()
     Base.metadata.create_all(bind=engine)
     _init_chat_tables()
-    _init_car_tables()
+    if os.environ.get("ENABLE_LEGACY_CAR_ROUTES", "0") == "1":
+        _init_car_tables()
+    _init_price_intelligence_tables()
 
 
 def _init_chat_tables():
@@ -106,23 +113,21 @@ def _init_chat_tables():
                 conn.execute(text(stmt))
             except Exception:
                 pass
-        # Ensure guest user (id=0) exists for unauthenticated mobile API access
-        exists = conn.execute(text(f"SELECT 1 FROM {SCHEMA}.chat_users WHERE id = 0")).fetchone()
-        if not exists:
-            conn.execute(text(
-                f"INSERT INTO {SCHEMA}.chat_users (id, email, name, password_hash) "
-                f"VALUES (0, 'guest@carhero.chat', 'Guest', 'nologin')"
-            ))
         # Seed admin user
         _seed_admin(conn)
         conn.commit()
 
 
 def _seed_admin(conn):
-    """Create the default admin user if it doesn't exist."""
+    """Optionally seed an admin from deployment secrets.
+
+    FastCPI deliberately has no source-controlled default credentials.
+    """
     import bcrypt
-    admin_email = "carehero.admin@predictivelabs.co.uk"
-    admin_pw = "Autod2$2"
+    admin_email = os.environ.get("ADMIN_EMAIL", "").strip().lower()
+    admin_pw = os.environ.get("ADMIN_PASSWORD", "")
+    if not admin_email or not admin_pw:
+        return
     exists = conn.execute(
         text(f"SELECT 1 FROM {SCHEMA}.chat_users WHERE email = :email"),
         {"email": admin_email},
@@ -132,7 +137,7 @@ def _seed_admin(conn):
         conn.execute(text(f"""
             INSERT INTO {SCHEMA}.chat_users (email, password_hash, name, is_verified, role)
             VALUES (:email, :pw, :name, TRUE, 'admin')
-        """), {"email": admin_email, "pw": pw_hash, "name": "CarHero Admin"})
+        """), {"email": admin_email, "pw": pw_hash, "name": "FastCPI Admin"})
     else:
         conn.execute(
             text(f"UPDATE {SCHEMA}.chat_users SET role = 'admin' WHERE email = :email"),
@@ -361,4 +366,188 @@ def _init_car_tables():
                 conn.execute(text(stmt))
             except Exception:
                 pass
+        conn.commit()
+
+
+def _init_price_intelligence_tables():
+    """Create the FastCPI observation, index, watchlist and API-key tables."""
+    ddl = [
+        f"""CREATE TABLE IF NOT EXISTS {SCHEMA}.cpv_codes (
+            code VARCHAR(8) NOT NULL,
+            check_digit VARCHAR(1),
+            version VARCHAR(20) NOT NULL DEFAULT '2008',
+            parent_code VARCHAR(8),
+            level INTEGER NOT NULL,
+            label_en TEXT NOT NULL,
+            labels JSONB DEFAULT '{{}}'::jsonb,
+            concept_uri TEXT,
+            is_active BOOLEAN DEFAULT TRUE,
+            PRIMARY KEY (code, version)
+        )""",
+        f"""CREATE TABLE IF NOT EXISTS {SCHEMA}.catalog_items (
+            id BIGSERIAL PRIMARY KEY,
+            item_type VARCHAR(20) NOT NULL CHECK (item_type IN ('good', 'service')),
+            name TEXT NOT NULL,
+            description TEXT,
+            cpv_code VARCHAR(8),
+            canonical_unit VARCHAR(40),
+            attributes JSONB DEFAULT '{{}}'::jsonb,
+            created_by INTEGER REFERENCES {SCHEMA}.chat_users(id),
+            created_at TIMESTAMPTZ DEFAULT NOW(),
+            updated_at TIMESTAMPTZ DEFAULT NOW()
+        )""",
+        f"""CREATE TABLE IF NOT EXISTS {SCHEMA}.item_identifiers (
+            id BIGSERIAL PRIMARY KEY,
+            item_id BIGINT NOT NULL REFERENCES {SCHEMA}.catalog_items(id) ON DELETE CASCADE,
+            identifier_type VARCHAR(20) NOT NULL,
+            identifier_value VARCHAR(255) NOT NULL,
+            issuer VARCHAR(255),
+            confidence NUMERIC(4,3) DEFAULT 1,
+            created_at TIMESTAMPTZ DEFAULT NOW(),
+            UNIQUE(identifier_type, identifier_value, item_id)
+        )""",
+        f"""CREATE TABLE IF NOT EXISTS {SCHEMA}.price_sources (
+            id BIGSERIAL PRIMARY KEY,
+            domain VARCHAR(255) UNIQUE NOT NULL,
+            name VARCHAR(255),
+            parser_key VARCHAR(100) DEFAULT 'generic',
+            access_status VARCHAR(30) DEFAULT 'unreviewed',
+            terms_url TEXT,
+            last_success_at TIMESTAMPTZ,
+            last_error_at TIMESTAMPTZ,
+            created_at TIMESTAMPTZ DEFAULT NOW()
+        )""",
+        f"""CREATE TABLE IF NOT EXISTS {SCHEMA}.offers (
+            id BIGSERIAL PRIMARY KEY,
+            item_id BIGINT REFERENCES {SCHEMA}.catalog_items(id) ON DELETE SET NULL,
+            source_id BIGINT NOT NULL REFERENCES {SCHEMA}.price_sources(id),
+            external_id VARCHAR(500),
+            seller_name VARCHAR(500),
+            title TEXT NOT NULL,
+            source_url TEXT UNIQUE NOT NULL,
+            market VARCHAR(2) NOT NULL,
+            availability VARCHAR(100),
+            terms JSONB DEFAULT '{{}}'::jsonb,
+            first_seen_at TIMESTAMPTZ DEFAULT NOW(),
+            last_seen_at TIMESTAMPTZ DEFAULT NOW(),
+            status VARCHAR(20) DEFAULT 'active'
+        )""",
+        f"""CREATE TABLE IF NOT EXISTS {SCHEMA}.price_observations (
+            id BIGSERIAL PRIMARY KEY,
+            offer_id BIGINT NOT NULL REFERENCES {SCHEMA}.offers(id) ON DELETE CASCADE,
+            amount_original NUMERIC(18,4) NOT NULL,
+            currency_original VARCHAR(3) NOT NULL,
+            amount_comparable NUMERIC(18,4),
+            currency_comparable VARCHAR(3),
+            quantity NUMERIC(18,4) DEFAULT 1,
+            unit_original VARCHAR(40),
+            unit_comparable VARCHAR(40),
+            vat_included BOOLEAN,
+            shipping_included BOOLEAN,
+            fx_rate NUMERIC(18,8),
+            fx_rate_date DATE,
+            confidence NUMERIC(4,3) NOT NULL DEFAULT 0,
+            warnings JSONB DEFAULT '[]'::jsonb,
+            captured_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+            extraction_method VARCHAR(100),
+            evidence_excerpt TEXT,
+            content_hash VARCHAR(64),
+            UNIQUE(offer_id, captured_at)
+        )""",
+        f"""CREATE TABLE IF NOT EXISTS {SCHEMA}.price_search_runs (
+            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+            user_id INTEGER REFERENCES {SCHEMA}.chat_users(id) ON DELETE SET NULL,
+            query TEXT NOT NULL,
+            query_type VARCHAR(20) NOT NULL,
+            query_value TEXT,
+            market VARCHAR(2) NOT NULL,
+            cpv_code VARCHAR(8),
+            exa_result_count INTEGER DEFAULT 0,
+            extracted_offer_count INTEGER DEFAULT 0,
+            status VARCHAR(20) DEFAULT 'running',
+            error TEXT,
+            started_at TIMESTAMPTZ DEFAULT NOW(),
+            completed_at TIMESTAMPTZ
+        )""",
+        f"""CREATE TABLE IF NOT EXISTS {SCHEMA}.price_indices (
+            id BIGSERIAL PRIMARY KEY,
+            series_key VARCHAR(255) NOT NULL,
+            market VARCHAR(2) NOT NULL,
+            cpv_code VARCHAR(8),
+            item_id BIGINT REFERENCES {SCHEMA}.catalog_items(id) ON DELETE CASCADE,
+            period_date DATE NOT NULL,
+            index_value NUMERIC(14,6) NOT NULL,
+            base_date DATE NOT NULL,
+            base_value NUMERIC(14,6) DEFAULT 100,
+            median_price NUMERIC(18,4),
+            observation_count INTEGER NOT NULL,
+            source_count INTEGER NOT NULL,
+            methodology_version VARCHAR(30) NOT NULL DEFAULT 'observed-median-v1',
+            coverage JSONB DEFAULT '{{}}'::jsonb,
+            created_at TIMESTAMPTZ DEFAULT NOW(),
+            UNIQUE(series_key, market, period_date, methodology_version)
+        )""",
+        f"""CREATE TABLE IF NOT EXISTS {SCHEMA}.watchlists (
+            id BIGSERIAL PRIMARY KEY,
+            user_id INTEGER NOT NULL REFERENCES {SCHEMA}.chat_users(id) ON DELETE CASCADE,
+            name VARCHAR(255) NOT NULL,
+            query TEXT NOT NULL,
+            query_type VARCHAR(20) NOT NULL DEFAULT 'text',
+            query_value TEXT,
+            markets JSONB NOT NULL DEFAULT '[]'::jsonb,
+            cpv_code VARCHAR(8),
+            target_price NUMERIC(18,4),
+            target_currency VARCHAR(3) DEFAULT 'EUR',
+            change_threshold_pct NUMERIC(8,3),
+            cadence VARCHAR(20) NOT NULL DEFAULT 'daily',
+            notify_email BOOLEAN DEFAULT TRUE,
+            is_active BOOLEAN DEFAULT TRUE,
+            last_run_at TIMESTAMPTZ,
+            next_run_at TIMESTAMPTZ,
+            created_at TIMESTAMPTZ DEFAULT NOW(),
+            updated_at TIMESTAMPTZ DEFAULT NOW()
+        )""",
+        f"""CREATE TABLE IF NOT EXISTS {SCHEMA}.watchlist_events (
+            id BIGSERIAL PRIMARY KEY,
+            watchlist_id BIGINT NOT NULL REFERENCES {SCHEMA}.watchlists(id) ON DELETE CASCADE,
+            event_type VARCHAR(50) NOT NULL,
+            observation_id BIGINT REFERENCES {SCHEMA}.price_observations(id) ON DELETE SET NULL,
+            payload JSONB NOT NULL DEFAULT '{{}}'::jsonb,
+            notified_at TIMESTAMPTZ,
+            created_at TIMESTAMPTZ DEFAULT NOW()
+        )""",
+        f"""CREATE TABLE IF NOT EXISTS {SCHEMA}.watchlist_observations (
+            watchlist_id BIGINT NOT NULL REFERENCES {SCHEMA}.watchlists(id) ON DELETE CASCADE,
+            observation_id BIGINT NOT NULL REFERENCES {SCHEMA}.price_observations(id) ON DELETE CASCADE,
+            created_at TIMESTAMPTZ DEFAULT NOW(),
+            PRIMARY KEY (watchlist_id, observation_id)
+        )""",
+        f"""CREATE TABLE IF NOT EXISTS {SCHEMA}.api_keys (
+            id BIGSERIAL PRIMARY KEY,
+            user_id INTEGER NOT NULL REFERENCES {SCHEMA}.chat_users(id) ON DELETE CASCADE,
+            name VARCHAR(100) NOT NULL,
+            key_prefix VARCHAR(16) NOT NULL,
+            key_hash VARCHAR(64) UNIQUE NOT NULL,
+            scopes JSONB NOT NULL DEFAULT '[\"prices:read\"]'::jsonb,
+            last_used_at TIMESTAMPTZ,
+            expires_at TIMESTAMPTZ,
+            revoked_at TIMESTAMPTZ,
+            created_at TIMESTAMPTZ DEFAULT NOW()
+        )""",
+    ]
+    indexes = [
+        f"CREATE INDEX IF NOT EXISTS idx_cpv_parent ON {SCHEMA}.cpv_codes(parent_code, version)",
+        f"CREATE INDEX IF NOT EXISTS idx_cpv_label_en ON {SCHEMA}.cpv_codes USING GIN (to_tsvector('english', label_en))",
+        f"CREATE INDEX IF NOT EXISTS idx_identifiers_value ON {SCHEMA}.item_identifiers(identifier_type, identifier_value)",
+        f"CREATE INDEX IF NOT EXISTS idx_offers_item_market ON {SCHEMA}.offers(item_id, market, status)",
+        f"CREATE INDEX IF NOT EXISTS idx_observations_offer_date ON {SCHEMA}.price_observations(offer_id, captured_at DESC)",
+        f"CREATE INDEX IF NOT EXISTS idx_indices_series_date ON {SCHEMA}.price_indices(series_key, market, period_date DESC)",
+        f"CREATE INDEX IF NOT EXISTS idx_watchlists_due ON {SCHEMA}.watchlists(is_active, next_run_at)",
+        f"CREATE INDEX IF NOT EXISTS idx_api_keys_user ON {SCHEMA}.api_keys(user_id, revoked_at)",
+    ]
+    with engine.connect() as conn:
+        for stmt in ddl:
+            conn.execute(text(stmt))
+        for stmt in indexes:
+            conn.execute(text(stmt))
         conn.commit()

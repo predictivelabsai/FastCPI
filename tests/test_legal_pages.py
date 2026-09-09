@@ -19,4 +19,4 @@ def test_delete_account_page_has_in_app_and_web_request_paths():
 
     assert "Delete in the app" in html
     assert "Request deletion without the app" in html
-    assert "mailto:info@carhero.chat" in html
+    assert "mailto:info@fastsme.com" in html

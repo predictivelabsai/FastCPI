@@ -232,6 +232,44 @@ class ListingOut(BaseModel):
     tier: int | None = None
 
 
+# ── FastCPI price intelligence ───────────────────────────────────────
+
+class PriceSearchRequest(BaseModel):
+    query: str = Field(min_length=2, max_length=500)
+    market: str = Field(min_length=2, max_length=2)
+    limit: int = Field(default=10, ge=1, le=25)
+    fetch_pages: bool = True
+    item_id: int | None = Field(default=None, gt=0)
+
+class WatchlistCreateRequest(BaseModel):
+    name: str = Field(min_length=1, max_length=255)
+    query: str = Field(min_length=2, max_length=500)
+    markets: list[str] = Field(min_length=1, max_length=10)
+    target_price: float | None = Field(default=None, gt=0)
+    target_currency: str = Field(default="EUR", pattern="^EUR$")
+    change_threshold_pct: float | None = Field(default=None, gt=0)
+    notify_email: bool = True
+
+class WatchlistUpdateRequest(BaseModel):
+    name: str | None = Field(default=None, min_length=1, max_length=255)
+    target_price: float | None = Field(default=None, gt=0)
+    change_threshold_pct: float | None = Field(default=None, gt=0)
+    notify_email: bool | None = None
+    is_active: bool | None = None
+
+class ApiKeyCreateRequest(BaseModel):
+    name: str = Field(default="Default", min_length=1, max_length=100)
+    scopes: list[str] = Field(default_factory=lambda: ["prices:read"])
+
+class CatalogItemCreateRequest(BaseModel):
+    item_type: str = Field(pattern="^(good|service)$")
+    name: str = Field(min_length=2, max_length=500)
+    description: str = Field(default="", max_length=4000)
+    cpv_code: str | None = Field(default=None, min_length=8, max_length=10)
+    canonical_unit: str | None = Field(default=None, max_length=40)
+    identifiers: list[dict[str, str]] = Field(default_factory=list)
+
+
 # ── Analytics ─────────────────────────────────────────────────────────
 
 class AnalyticsRequest(BaseModel):

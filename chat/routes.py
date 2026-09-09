@@ -13,11 +13,9 @@ from chat.layout import chat_page
 from chat import sse
 from utils.session import (get_user_email, set_user_email, clear_user,
                            get_user_id, set_user_id)
+from db import SCHEMA
 
 log = logging.getLogger(__name__)
-
-SCHEMA = "carhero"
-
 
 def _get_db():
     from db import SessionLocal
@@ -130,6 +128,9 @@ def register_chat_routes(rt):
     @rt("/app")
     def app_home(sess, sid: str = ""):
         uid, email = _ensure_user(sess)
+        if not uid or not email:
+            from starlette.responses import RedirectResponse
+            return RedirectResponse("/?auth_error=invite_required", status_code=303)
         sessions = _list_sessions(uid) if uid else []
         messages = []
         current_agent = None
@@ -173,19 +174,7 @@ def register_chat_routes(rt):
 
         uid, email = _ensure_user(sess)
         if not uid:
-            from sqlalchemy import text
-            db = _get_db()
-            try:
-                row = db.execute(
-                    text(f"INSERT INTO {SCHEMA}.chat_users (email) VALUES (:email) "
-                         "ON CONFLICT (email) DO UPDATE SET email = EXCLUDED.email RETURNING id"),
-                    {"email": f"guest+{id(sess):x}@carhero.local"},
-                ).fetchone()
-                db.commit()
-                uid = row[0]
-            finally:
-                db.close()
-            set_user_id(sess, uid)
+            return JSONResponse({"error": "FastCPI is invite-only; sign in first"}, status_code=401)
 
         session_id = _ensure_session(uid, sid_str, first_message=user_msg)
 
@@ -215,7 +204,12 @@ def register_chat_routes(rt):
                     f"\nUser language: {lang} ({lang_info['name']}). "
                     f"Respond in {lang_info['name']}."
                 )
-            lc_messages = [SystemMessage(content=f"You are a CarHero car advisor. Respond helpfully and concisely.{lang_directive}")]
+            lc_messages = [SystemMessage(content=(
+                "You are FastCPI, a B2B web-market price intelligence assistant. "
+                "Distinguish extracted observations from discovery-only results, cite source URLs, "
+                "and never describe observed prices as complete market coverage."
+                f"{lang_directive}"
+            ))]
             for h in history[-20:]:
                 if h["role"] == "user":
                     lc_messages.append(HumanMessage(content=h["content"]))
@@ -274,6 +268,14 @@ def register_chat_routes(rt):
                 db.commit()
             finally:
                 db.close()
+            try:
+                from charts import build_chart, detect_charts
+                for chart_name in detect_charts(stripped_msg):
+                    chart = build_chart(chart_name)
+                    if chart:
+                        yield sse.event(sse.CHART, chart)
+            except Exception as exc:
+                log.warning("chart emit failed: %s", exc)
             yield sse.event(sse.DONE, {"slug": agent_slug, "tools": len(tool_calls_log)})
 
         return StreamingResponse(event_stream(), media_type="text/event-stream")
@@ -289,13 +291,7 @@ def register_chat_routes(rt):
 
     @rt("/app/auth/signin", methods=["POST"])
     async def signin(request: Request):
-        form = await request.form()
-        email = (form.get("email") or "").strip().lower()
-        if "@" not in email:
-            return JSONResponse({"ok": False, "error": "invalid email"}, status_code=400)
-        set_user_email(request.session, email)
-        _ensure_user(request.session)
-        return JSONResponse({"ok": True, "email": email})
+        return JSONResponse({"error": "Email-only sign-in is disabled; use Google or password authentication"}, status_code=410)
 
     @rt("/app/auth/signout", methods=["POST"])
     async def signout(request: Request):

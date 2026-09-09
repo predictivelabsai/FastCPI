@@ -1,0 +1,59 @@
+{
+  "version": 1,
+  "cases": [
+    {
+      "id": "fr_plain_good",
+      "category": "plain_language",
+      "question": "Show me the lowest prices for A4 recycled printer paper in France.",
+      "expected_route": "price_finder",
+      "market": "FR",
+      "requires_source": true,
+      "requires_coverage_disclaimer": true
+    },
+    {
+      "id": "de_sku",
+      "category": "identifier",
+      "question": "Find B2B prices for SKU 6ES7214-1AG40-0XB0 in Germany.",
+      "expected_route": "price_finder",
+      "market": "DE",
+      "requires_source": true,
+      "requires_coverage_disclaimer": true
+    },
+    {
+      "id": "fr_cpv_division",
+      "category": "cpv",
+      "question": "Search CPV 30100000-0 and its descendants in France.",
+      "expected_route": "cpv_specialist",
+      "market": "FR",
+      "requires_source": true,
+      "requires_coverage_disclaimer": true
+    },
+    {
+      "id": "ee_service",
+      "category": "services",
+      "question": "Compare hourly IT support services in Estonia including VAT and contract terms.",
+      "expected_route": "product_compare",
+      "market": "EE",
+      "requires_source": true,
+      "requires_coverage_disclaimer": true
+    },
+    {
+      "id": "fr_language",
+      "category": "multilingual",
+      "question": "Montrez-moi les prix observés les plus bas pour du papier A4 recyclé en France.",
+      "expected_route": "price_finder",
+      "market": "FR",
+      "requires_source": true,
+      "requires_coverage_disclaimer": true
+    },
+    {
+      "id": "watch_sku",
+      "category": "watchlist",
+      "question": "Monitor SKU ABC-123 in Germany every day and alert me after a 5% change.",
+      "expected_route": "watchlist_monitor",
+      "market": "DE",
+      "requires_source": false,
+      "requires_coverage_disclaimer": false
+    }
+  ]
+}

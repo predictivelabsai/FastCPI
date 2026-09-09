@@ -17,7 +17,7 @@ from chat.components import left_pane, signin_overlay
 from chat.routes import _ensure_user, _list_sessions
 
 log = logging.getLogger(__name__)
-SCHEMA = "carhero"
+from db import SCHEMA
 
 
 def _get_db():

@@ -34,13 +34,11 @@ def test_delete_user_data_removes_all_user_owned_records():
     for table in (
         "chat_messages",
         "chat_sessions",
-        "favorites",
-        "saved_searches",
-        "garage_cars",
-        "user_profiles",
+        "watchlists",
+        "api_keys",
         "chat_users",
     ):
-        assert f"carhero.{table}" in sql
+        assert f"fastcpi.{table}" in sql
     assert all(params == {"uid": 42} for _, params in db.statements)
     assert db.committed is True
 

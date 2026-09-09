@@ -29,7 +29,7 @@ tailwind.config = {
 """
 
 
-def _head(title: str = "CarHero") -> Head:
+def _head(title: str = "FastCPI") -> Head:
     return Head(
         Meta(charset="utf-8"),
         Meta(name="viewport", content="width=device-width, initial-scale=1, viewport-fit=cover"),
@@ -39,7 +39,7 @@ def _head(title: str = "CarHero") -> Head:
         Link(rel="icon", href="/static/favicon.svg", type="image/svg+xml"),
         Link(rel="apple-touch-icon", href="/static/favicon.svg"),
         Link(rel="manifest", href="/static/manifest.json"),
-        Title(f"{title} -- CarHero"),
+        Title(f"{title} -- FastCPI"),
         Link(rel="preconnect", href="https://fonts.googleapis.com"),
         Link(rel="preconnect", href="https://fonts.gstatic.com", crossorigin=""),
         Link(rel="stylesheet",
@@ -73,7 +73,7 @@ def chat_page(user_email=None, sessions=None, current_sid="",
         Script(src="/static/chat.js?v=2"),
         cls="bg-white text-ink font-sans antialiased app",
     )
-    return Html(_head("Car Advisor"), body)
+    return Html(_head("Price Intelligence"), body)
 
 
 def shared_chat_page(title: str = "Shared Chat", messages=None, agent_slug=None):
@@ -101,7 +101,7 @@ def shared_chat_page(title: str = "Shared Chat", messages=None, agent_slug=None)
             Div(
                 Div(title, cls="chat-header-title"),
                 Div(
-                    Div("Shared via CarHero", cls="text-sm text-gray-400"),
+                    Div("Shared via FastCPI", cls="text-sm text-gray-400"),
                     cls="chat-header-actions",
                 ),
                 cls="chat-header",

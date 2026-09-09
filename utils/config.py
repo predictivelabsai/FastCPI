@@ -16,7 +16,7 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
     db_url: str = Field(default="", alias="DB_URL")
-    app_secret: str = Field(default="carhero-app-2026", alias="APP_SECRET")
+    app_secret: str = Field(default="fastcpi-local-development", alias="APP_SECRET")
     port: int = Field(default=5010, alias="PORT")
 
     xai_api_key: str = Field(default="", alias="XAI_API_KEY")
@@ -32,6 +32,7 @@ class Settings(BaseSettings):
     exa_api_key: str = Field(default="", alias="EXA_API_KEY")
 
     login_enabled: bool = Field(default=False, alias="LOGIN")
+    invite_only: bool = Field(default=True, alias="INVITE_ONLY")
 
 
 @lru_cache(maxsize=1)

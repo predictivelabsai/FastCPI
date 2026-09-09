@@ -1,9 +1,10 @@
 """Account deletion shared by the mobile API and future account-management flows."""
 
+import os
+
 from sqlalchemy import text
 
-
-SCHEMA = "carhero"
+SCHEMA = os.environ.get("DB_SCHEMA", "fastcpi")
 
 
 def delete_user_data(db, user_id: int) -> bool:
@@ -27,9 +28,9 @@ def delete_user_data(db, user_id: int) -> bool:
         {"uid": user_id},
     )
 
-    # These tables use ON DELETE CASCADE in the current schema, but explicit
-    # deletion also supports older deployed databases created before that rule.
-    for table in ("favorites", "saved_searches", "garage_cars", "user_profiles"):
+    # These tables use ON DELETE CASCADE, but explicit deletion keeps the
+    # lifecycle clear and supports databases created before those constraints.
+    for table in ("watchlists", "api_keys"):
         db.execute(
             text(f"DELETE FROM {SCHEMA}.{table} WHERE user_id = :uid"),
             {"uid": user_id},

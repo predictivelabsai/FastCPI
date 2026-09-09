@@ -55,9 +55,9 @@ def NavBar(active='home', sess=None):
 
     nav_items = [
         ('home', '/', t('nav_home', lang)),
-        ('advisory', '/app', t('nav_advisory', lang)),
+        ('advisory', '/app', 'Price intelligence'),
         ('about', '/about', t('nav_about', lang)),
-        ('market-map', '/app/market-map', t('nav_market_map', lang)),
+        ('market-map', '/app/market-overview', 'Market overview'),
         ('contact', '/contact', t('nav_contact', lang)),
     ]
 
@@ -68,12 +68,12 @@ def NavBar(active='home', sess=None):
 
     nav_links = [Li(nav_link(k, h, l)) for k, h, l in nav_items]
 
-    cta = A(t('nav_open_app', lang), href='#', onclick='showSignIn();return false',
+    cta = A('Sign In', href='/auth/google',
             cls='inline-flex items-center px-4 py-2 rounded-full text-xs font-medium bg-black text-white hover:bg-gray-800 transition-colors no-underline cursor-pointer')
 
     return Nav(
         Div(
-            A('Car', Span('Hero', cls='text-gray-400'), href='/',
+            A('Fast', Span('CPI', cls='text-emerald-700'), href='/',
               cls='font-display text-xl font-bold text-black no-underline tracking-tight shrink-0'),
             Ul(*nav_links, cls='hidden lg:flex items-center gap-6 list-none m-0 p-0'),
             Div(
@@ -100,16 +100,16 @@ def PageFooter(lang: str = "en"):
         Div(
             Div(
                 Div(
-                    H3('Car', Span('Hero', cls='text-gray-500'),
+                    H3('Fast', Span('CPI', cls='text-emerald-700'),
                        cls='font-display text-black text-xl mb-4 tracking-wide'),
-                    P(t('footer_desc', lang),
+                    P('Source-backed B2B web-market price intelligence.',
                       cls='text-sm leading-relaxed text-gray-500'),
                 ),
                 Div(
                     H4(t('footer_platform', lang), cls='text-black text-sm uppercase tracking-wider mb-4'),
                     Ul(
-                        Li(A(t('nav_advisory', lang), href='/app', cls='text-gray-500 no-underline text-sm hover:text-black transition-colors'), cls='mb-2'),
-                        Li(A(t('nav_market_map', lang), href='/app/market-map', cls='text-gray-500 no-underline text-sm hover:text-black transition-colors'), cls='mb-2'),
+                        Li(A('Price intelligence', href='/app', cls='text-gray-500 no-underline text-sm hover:text-black transition-colors'), cls='mb-2'),
+                        Li(A('Market overview', href='/app/market-overview', cls='text-gray-500 no-underline text-sm hover:text-black transition-colors'), cls='mb-2'),
                         cls='list-none'
                     )
                 ),
@@ -124,7 +124,6 @@ def PageFooter(lang: str = "en"):
                 Div(
                     H4(t('footer_legal', lang), cls='text-black text-sm uppercase tracking-wider mb-4'),
                     Ul(
-                        Li(A(t('footer_terms', lang), href='/terms', cls='text-gray-500 no-underline text-sm hover:text-black transition-colors'), cls='mb-2'),
                         Li(A(t('footer_privacy', lang), href='/privacy', cls='text-gray-500 no-underline text-sm hover:text-black transition-colors'), cls='mb-2'),
                         Li(A('Delete account', href='/delete-account', cls='text-gray-500 no-underline text-sm hover:text-black transition-colors'), cls='mb-2'),
                         cls='list-none'
@@ -133,8 +132,8 @@ def PageFooter(lang: str = "en"):
                 cls='max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-4 gap-12'
             ),
             Div(
-                P(t('footer_copyright', lang)),
-                P(t('footer_disclaimer', lang)),
+                P('© 2026 FastCPI. All rights reserved.'),
+                P('Web-observed asking prices; not an official CPI or complete market coverage.'),
                 cls='max-w-7xl mx-auto mt-12 pt-8 border-t border-gray-200 flex flex-col md:flex-row justify-between items-center text-sm gap-4'
             ),
         ),
@@ -142,10 +141,10 @@ def PageFooter(lang: str = "en"):
     )
 
 
-def Page(content, active='home', title='CarHero', sess=None):
+def Page(content, active='home', title='FastCPI', sess=None):
     lang = get_lang(sess or {})
     return (
-        Title(f'{title} — AI Car Advisory'),
+        Title(f'{title} — B2B price intelligence'),
         NavBar(active, sess=sess),
         Main(content),
         PageFooter(lang=lang)

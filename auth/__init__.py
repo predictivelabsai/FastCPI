@@ -1,1 +1,1 @@
-"""Authentication module for CarHero."""
+"""Authentication module for FastCPI."""

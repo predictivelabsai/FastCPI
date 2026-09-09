@@ -1,4 +1,4 @@
-/* CarHero — chat UI (white minimal + black) */
+/* FastCPI — chat UI (white minimal + procurement green) */
 
 :root {
   --bg: #FFFFFF;
@@ -885,3 +885,26 @@
   line-height: 1;
 }
 .fav-btn:hover { color: #DC2626; }
+.chat-chart { margin: 4px 24px 18px 58px; padding: 12px; border: 1px solid #e3ebe7; border-radius: 10px; background: #fff; }
+.chat-chart-title { font-size: 12px; font-weight: 600; color: #34453e; margin: 0 0 6px; }
+.chat-chart-plot { width: 100%; min-height: 320px; }
+.price-card { border: 1px solid #dce8e2; border-radius: 9px; padding: 12px; margin-bottom: 10px; background: #fff; }
+.price-card-head { display: flex; justify-content: space-between; gap: 8px; align-items: flex-start; font-size: 13px; }
+.evidence-badge, .discovery-badge { display: inline-block; padding: 2px 7px; border-radius: 999px; font-size: 10px; font-weight: 600; white-space: nowrap; }
+.evidence-badge { color: #0b684f; background: #e6f5ef; }
+.discovery-badge { color: #725b13; background: #fff6d8; margin-right: 6px; }
+.price-value { color: #0b684f; font-size: 20px; font-weight: 650; margin-top: 9px; }
+.price-value small { color: #66736d; font-size: 11px; font-weight: 500; }
+.price-source, .price-meta, .price-warning { color: #66736d; font-size: 11px; margin-top: 4px; }
+.price-warning { color: #9a5b12; }
+.artifact-subhead { font-size: 11px; text-transform: uppercase; letter-spacing: .08em; color: #7b8580; margin: 16px 0 8px; }
+.discovery-row { font-size: 11px; padding: 7px 0; border-top: 1px solid #edf1ef; }
+.discovery-row a { color: #263a32; }
+.visuals-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+.visual-card { min-width: 0; border: 1px solid #e3ebe7; border-radius: 10px; padding: 12px; background: #fff; }
+.visual-card-title { font-size: 12px; font-weight: 600; color: #34453e; }
+.visual-plot { min-height: 340px; }
+@media (max-width: 768px) {
+  .chat-chart { margin-left: 12px; margin-right: 12px; }
+  .visuals-grid { grid-template-columns: 1fr; }
+}

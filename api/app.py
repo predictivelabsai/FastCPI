@@ -1,4 +1,4 @@
-"""FastAPI application for the CarHero mobile API.
+"""FastAPI application for FastCPI price intelligence.
 
 Mounted at /api/v1 by main.py (dual deploy with FastHTML).
 Also runnable standalone: python -m api.app
@@ -9,6 +9,8 @@ from __future__ import annotations
 import json
 import logging
 import secrets
+import hashlib
+import os
 
 from fastapi import FastAPI, Depends, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
@@ -29,20 +31,20 @@ from api.schemas import (
     ListingOut,
     AnalyticsRequest, AnalyticsResponse,
     ContactRequest,
+    PriceSearchRequest, WatchlistCreateRequest, WatchlistUpdateRequest,
+    ApiKeyCreateRequest, CatalogItemCreateRequest,
 )
-from api.deps import get_db, get_current_user, get_optional_user
+from api.deps import get_db, get_current_user, get_api_principal, require_scope
 from auth.utils import hash_password, verify_password
+from db import SCHEMA
 
 log = logging.getLogger(__name__)
-
-SCHEMA = "carhero"
-
 
 def create_app(root_path: str = "") -> FastAPI:
     """Build the FastAPI app. Routes have no /api/v1 prefix — that comes from the mount point."""
     api = FastAPI(
-        title="CarHero API",
-        description="Mobile API for CarHero — EU car marketplace with AI advisors",
+        title="FastCPI API",
+        description="B2B web-market price observations, provenance, indices and monitoring",
         version="1.0.0",
         root_path=root_path,
         docs_url="/docs",
@@ -50,9 +52,12 @@ def create_app(root_path: str = "") -> FastAPI:
         openapi_url="/openapi.json",
     )
 
+    cors_origins = [value.strip() for value in os.environ.get(
+        "CORS_ALLOWED_ORIGINS", "https://cpi.fastsme.com"
+    ).split(",") if value.strip()]
     api.add_middleware(
         CORSMiddleware,
-        allow_origins=["*"],
+        allow_origins=cors_origins,
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],
@@ -68,20 +73,27 @@ def create_app(root_path: str = "") -> FastAPI:
 
     @api.post("/auth/register", response_model=AuthResponse, tags=["auth"])
     def register(body: RegisterRequest, db: Session = Depends(get_db)):
+        from auth.access import consume_invitation, pending_invitation
+        email = body.email.strip().lower()
         existing = db.execute(
             text(f"SELECT id, password_hash FROM {SCHEMA}.chat_users WHERE email = :email"),
-            {"email": body.email},
+            {"email": email},
         ).fetchone()
 
+        invitation = pending_invitation(db, email)
         if existing and existing.password_hash:
             raise HTTPException(409, "An account with this email already exists")
+        if existing and not existing.password_hash and not invitation:
+            raise HTTPException(409, "This account uses Google Sign-In")
+        if not existing and not invitation:
+            raise HTTPException(403, "FastCPI is invite-only")
 
         pw_hash = hash_password(body.password)
 
         if existing:
             db.execute(
                 text(f"UPDATE {SCHEMA}.chat_users SET password_hash = :pw, name = :name, is_verified = TRUE WHERE email = :email"),
-                {"pw": pw_hash, "name": body.name, "email": body.email},
+                {"pw": pw_hash, "name": body.name, "email": email},
             )
             db.commit()
             uid = existing.id
@@ -89,13 +101,13 @@ def create_app(root_path: str = "") -> FastAPI:
             row = db.execute(
                 text(f"INSERT INTO {SCHEMA}.chat_users (email, password_hash, name, is_verified) "
                      "VALUES (:email, :pw, :name, TRUE) RETURNING id"),
-                {"email": body.email, "pw": pw_hash, "name": body.name},
+                {"email": email, "pw": pw_hash, "name": body.name},
             ).fetchone()
-            db.commit()
             uid = row[0]
-
-        token = create_token(uid, body.email)
-        return AuthResponse(token=token, email=body.email, name=body.name, user_id=uid)
+        consume_invitation(db, email)
+        db.commit()
+        token = create_token(uid, email)
+        return AuthResponse(token=token, email=email, name=body.name, user_id=uid)
 
     @api.post("/auth/login", response_model=AuthResponse, tags=["auth"])
     def login(body: LoginRequest, db: Session = Depends(get_db)):
@@ -130,6 +142,9 @@ def create_app(root_path: str = "") -> FastAPI:
         email = info.get("email")
         if not email or info.get("email_verified") != "true":
             raise HTTPException(401, "Email not verified")
+        configured_client_id = os.environ.get("GOOGLE_CLIENT_ID", "")
+        if not configured_client_id or info.get("aud") != configured_client_id:
+            raise HTTPException(401, "Google token audience does not match FastCPI")
 
         name = info.get("name", "")
 
@@ -142,11 +157,15 @@ def create_app(root_path: str = "") -> FastAPI:
             uid = row.id
             name = row.name or name
         else:
+            from auth.access import consume_invitation, pending_invitation
+            if not pending_invitation(db, email):
+                raise HTTPException(403, "FastCPI is invite-only")
             r = db.execute(
                 text(f"INSERT INTO {SCHEMA}.chat_users (email, name, is_verified) "
                      "VALUES (:email, :name, TRUE) RETURNING id"),
                 {"email": email, "name": name},
             ).fetchone()
+            consume_invitation(db, email)
             db.commit()
             uid = r[0]
 
@@ -186,15 +205,323 @@ def create_app(root_path: str = "") -> FastAPI:
             for a in AGENTS
         ]
 
+    # ── Price intelligence ───────────────────────────────────────────
+
+    @api.get("/prices/search", tags=["prices"])
+    def search_prices(
+        q: str = "",
+        market: str | None = None,
+        limit: int = 50,
+        principal: dict = Depends(get_api_principal),
+        db: Session = Depends(get_db),
+    ):
+        """Search persisted observations without triggering a web crawl."""
+        require_scope(principal, "prices:read")
+        from pricing.markets import normalize_market
+        from pricing.repository import latest_observations
+        if market:
+            try:
+                market = normalize_market(market)
+            except ValueError as exc:
+                raise HTTPException(422, str(exc)) from exc
+        rows = latest_observations(db, query=q, market=market, limit=limit)
+        return {
+            "query": q,
+            "market": market,
+            "count": len(rows),
+            "coverage_statement": "Persisted public web observations; not complete market coverage.",
+            "offers": rows,
+        }
+
+    @api.post("/prices/observe", tags=["prices"])
+    def observe_prices(
+        body: PriceSearchRequest,
+        principal: dict = Depends(get_api_principal),
+        db: Session = Depends(get_db),
+    ):
+        """Run EXA discovery, fetch candidate pages, and persist extracted evidence."""
+        require_scope(principal, "prices:observe")
+        from pricing.service import search_web_prices
+        from pricing.repository import persist_search_result
+        try:
+            result = search_web_prices(
+                body.query, body.market, limit=body.limit, fetch_pages=body.fetch_pages,
+            )
+            result["item_id"] = body.item_id
+            return persist_search_result(db, result, user_id=principal["user_id"])
+        except ValueError as exc:
+            raise HTTPException(422, str(exc)) from exc
+        except Exception as exc:
+            log.exception("price observation failed")
+            raise HTTPException(502, f"Price discovery failed: {type(exc).__name__}") from exc
+
+    @api.get("/prices/{observation_id}", tags=["prices"])
+    def get_price_observation(
+        observation_id: int,
+        principal: dict = Depends(get_api_principal),
+        db: Session = Depends(get_db),
+    ):
+        require_scope(principal, "prices:read")
+        row = db.execute(text(f"""
+            SELECT po.*, o.title, o.seller_name, o.source_url, o.market,
+                   ps.domain AS source_domain, ps.access_status
+            FROM {SCHEMA}.price_observations po
+            JOIN {SCHEMA}.offers o ON o.id = po.offer_id
+            JOIN {SCHEMA}.price_sources ps ON ps.id = o.source_id
+            WHERE po.id = :id
+        """), {"id": observation_id}).fetchone()
+        if not row:
+            raise HTTPException(404, "Price observation not found")
+        return dict(row._mapping)
+
+    @api.get("/items", tags=["items"])
+    def list_items(
+        q: str = "", limit: int = 50,
+        principal: dict = Depends(get_api_principal), db: Session = Depends(get_db),
+    ):
+        require_scope(principal, "prices:read")
+        rows = db.execute(text(f"""
+            SELECT ci.*,
+                   COALESCE(jsonb_agg(jsonb_build_object('type',ii.identifier_type,'value',ii.identifier_value))
+                            FILTER (WHERE ii.id IS NOT NULL), '[]'::jsonb) AS identifiers
+            FROM {SCHEMA}.catalog_items ci
+            LEFT JOIN {SCHEMA}.item_identifiers ii ON ii.item_id=ci.id
+            WHERE (:q='' OR ci.name ILIKE :pattern OR ci.description ILIKE :pattern)
+            GROUP BY ci.id ORDER BY ci.updated_at DESC LIMIT :limit
+        """), {"q": q, "pattern": f"%{q}%", "limit": min(max(limit, 1), 200)}).fetchall()
+        return [dict(row._mapping) for row in rows]
+
+    @api.post("/items", tags=["items"])
+    def create_item(body: CatalogItemCreateRequest, user: dict = Depends(get_current_user), db: Session = Depends(get_db)):
+        cpv = None
+        if body.cpv_code:
+            cpv = "".join(char for char in body.cpv_code if char.isdigit())[:8]
+            if len(cpv) != 8:
+                raise HTTPException(422, "CPV code must contain eight digits")
+        row = db.execute(text(f"""
+            INSERT INTO {SCHEMA}.catalog_items
+                (item_type,name,description,cpv_code,canonical_unit,created_by)
+            VALUES (:kind,:name,:description,:cpv,:unit,:uid) RETURNING *
+        """), {"kind": body.item_type, "name": body.name, "description": body.description or None,
+                 "cpv": cpv, "unit": body.canonical_unit, "uid": user["user_id"]}).fetchone()
+        for identifier in body.identifiers:
+            kind = (identifier.get("type") or "").lower()
+            value = (identifier.get("value") or "").strip()
+            if kind not in {"sku", "mpn", "gtin", "ean", "upc", "vendor"} or not value:
+                raise HTTPException(422, "Each identifier needs a supported type and value")
+            db.execute(text(f"""
+                INSERT INTO {SCHEMA}.item_identifiers (item_id,identifier_type,identifier_value,issuer)
+                VALUES (:item,:kind,:value,:issuer)
+            """), {"item": row.id, "kind": kind, "value": value, "issuer": identifier.get("issuer")})
+        db.commit()
+        return dict(row._mapping)
+
+    @api.get("/cpv/search", tags=["cpv"])
+    def cpv_search(
+        q: str,
+        lang: str = "en",
+        limit: int = 20,
+        principal: dict = Depends(get_api_principal),
+        db: Session = Depends(get_db),
+    ):
+        require_scope(principal, "prices:read")
+        from pricing.cpv import search_cpv
+        return {"query": q, "results": search_cpv(db, q, lang=lang, limit=min(limit, 100))}
+
+    @api.get("/cpv/{code}/overview", tags=["cpv"])
+    def cpv_overview(
+        code: str,
+        refresh: bool = False,
+        principal: dict = Depends(get_api_principal),
+        db: Session = Depends(get_db),
+    ):
+        require_scope(principal, "prices:read")
+        from pricing.cpv import concept_uri, expand_cpv, import_official_tree
+        descendants = expand_cpv(db, code)
+        if refresh or not descendants:
+            try:
+                descendants = import_official_tree(db, code)
+            except Exception as exc:
+                if not descendants:
+                    raise HTTPException(502, f"Official CPV lookup failed: {type(exc).__name__}") from exc
+        return {
+            "code": code,
+            "version": "2008",
+            "concept_uri": concept_uri(code),
+            "descendant_count": max(0, len(descendants) - 1),
+            "concepts": descendants,
+        }
+
+    @api.get("/markets/{country}/overview", tags=["markets"])
+    def market_overview(
+        country: str,
+        principal: dict = Depends(get_api_principal),
+        db: Session = Depends(get_db),
+    ):
+        require_scope(principal, "prices:read")
+        from pricing.markets import MARKETS, normalize_market
+        try:
+            market = normalize_market(country)
+        except ValueError as exc:
+            raise HTTPException(422, str(exc)) from exc
+        stats = db.execute(text(f"""
+            SELECT COUNT(DISTINCT o.id) AS offers,
+                   COUNT(po.id) AS observations,
+                   COUNT(DISTINCT ps.domain) AS sources,
+                   MAX(po.captured_at) AS latest_observation,
+                   PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY po.amount_comparable)
+                       FILTER (WHERE po.currency_comparable = 'EUR') AS median_eur
+            FROM {SCHEMA}.offers o
+            JOIN {SCHEMA}.price_sources ps ON ps.id = o.source_id
+            JOIN {SCHEMA}.price_observations po ON po.offer_id = o.id
+            WHERE o.market = :market AND o.status = 'active'
+        """), {"market": market}).fetchone()
+        return {"market": market, **MARKETS[market], **dict(stats._mapping)}
+
+    @api.get("/indices", tags=["indices"])
+    def list_indices(
+        market: str | None = None,
+        series_key: str | None = None,
+        limit: int = 100,
+        principal: dict = Depends(get_api_principal),
+        db: Session = Depends(get_db),
+    ):
+        require_scope(principal, "prices:read")
+        clauses, params = ["1=1"], {"limit": min(max(limit, 1), 500)}
+        if market:
+            clauses.append("market = :market")
+            params["market"] = market.upper()
+        if series_key:
+            clauses.append("series_key = :series")
+            params["series"] = series_key
+        rows = db.execute(text(f"""
+            SELECT * FROM {SCHEMA}.price_indices
+            WHERE {' AND '.join(clauses)}
+            ORDER BY period_date DESC LIMIT :limit
+        """), params).fetchall()
+        return {"count": len(rows), "series": [dict(r._mapping) for r in rows]}
+
+    # ── Watchlists ───────────────────────────────────────────────────
+
+    @api.get("/watchlists", tags=["watchlists"])
+    def list_watchlists(user: dict = Depends(get_current_user), db: Session = Depends(get_db)):
+        rows = db.execute(text(f"SELECT * FROM {SCHEMA}.watchlists WHERE user_id=:uid ORDER BY updated_at DESC"),
+                          {"uid": user["user_id"]}).fetchall()
+        return [dict(r._mapping) for r in rows]
+
+    @api.post("/watchlists", tags=["watchlists"])
+    def create_watchlist(body: WatchlistCreateRequest, user: dict = Depends(get_current_user), db: Session = Depends(get_db)):
+        from pricing.identifiers import classify_query
+        from pricing.markets import normalize_market
+        identity = classify_query(body.query)
+        try:
+            markets = [normalize_market(m) for m in body.markets]
+        except ValueError as exc:
+            raise HTTPException(422, str(exc)) from exc
+        row = db.execute(text(f"""
+            INSERT INTO {SCHEMA}.watchlists
+                (user_id, name, query, query_type, query_value, markets, cpv_code,
+                 target_price, target_currency, change_threshold_pct, notify_email,
+                 next_run_at)
+            VALUES (:uid, :name, :query, :kind, :value, CAST(:markets AS jsonb), :cpv,
+                    :target, :currency, :change, :notify, NOW())
+            RETURNING *
+        """), {
+            "uid": user["user_id"], "name": body.name, "query": body.query,
+            "kind": identity.kind, "value": identity.value,
+            "markets": json.dumps(markets), "cpv": identity.value if identity.kind == "cpv" else None,
+            "target": body.target_price, "currency": body.target_currency.upper(),
+            "change": body.change_threshold_pct, "notify": body.notify_email,
+        }).fetchone()
+        db.commit()
+        return dict(row._mapping)
+
+    @api.patch("/watchlists/{watchlist_id}", tags=["watchlists"])
+    def update_watchlist(watchlist_id: int, body: WatchlistUpdateRequest,
+                         user: dict = Depends(get_current_user), db: Session = Depends(get_db)):
+        values = body.model_dump(exclude_unset=True)
+        allowed = {"name", "target_price", "change_threshold_pct", "notify_email", "is_active"}
+        values = {k: v for k, v in values.items() if k in allowed}
+        if not values:
+            raise HTTPException(422, "No supported fields supplied")
+        setters = [f"{key} = :{key}" for key in values]
+        values.update({"id": watchlist_id, "uid": user["user_id"]})
+        row = db.execute(text(f"""
+            UPDATE {SCHEMA}.watchlists SET {', '.join(setters)}, updated_at=NOW()
+            WHERE id=:id AND user_id=:uid RETURNING *
+        """), values).fetchone()
+        if not row:
+            raise HTTPException(404, "Watchlist not found")
+        db.commit()
+        return dict(row._mapping)
+
+    @api.delete("/watchlists/{watchlist_id}", tags=["watchlists"])
+    def delete_watchlist(watchlist_id: int, user: dict = Depends(get_current_user), db: Session = Depends(get_db)):
+        row = db.execute(text(f"DELETE FROM {SCHEMA}.watchlists WHERE id=:id AND user_id=:uid RETURNING id"),
+                         {"id": watchlist_id, "uid": user["user_id"]}).fetchone()
+        if not row:
+            raise HTTPException(404, "Watchlist not found")
+        db.commit()
+        return {"ok": True}
+
+    @api.get("/watchlists/{watchlist_id}/events", tags=["watchlists"])
+    def watchlist_events(watchlist_id: int, user: dict = Depends(get_current_user), db: Session = Depends(get_db)):
+        rows = db.execute(text(f"""
+            SELECT e.* FROM {SCHEMA}.watchlist_events e
+            JOIN {SCHEMA}.watchlists w ON w.id=e.watchlist_id
+            WHERE w.id=:id AND w.user_id=:uid ORDER BY e.created_at DESC LIMIT 100
+        """), {"id": watchlist_id, "uid": user["user_id"]}).fetchall()
+        return [dict(r._mapping) for r in rows]
+
+    # ── Scoped API keys ──────────────────────────────────────────────
+
+    @api.get("/api-keys", tags=["api-keys"])
+    def list_api_keys(user: dict = Depends(get_current_user), db: Session = Depends(get_db)):
+        rows = db.execute(text(f"""
+            SELECT id, name, key_prefix, scopes, last_used_at, expires_at, revoked_at, created_at
+            FROM {SCHEMA}.api_keys WHERE user_id=:uid ORDER BY created_at DESC
+        """), {"uid": user["user_id"]}).fetchall()
+        return [dict(r._mapping) for r in rows]
+
+    @api.post("/api-keys", tags=["api-keys"])
+    def create_api_key(body: ApiKeyCreateRequest, user: dict = Depends(get_current_user), db: Session = Depends(get_db)):
+        allowed = {"prices:read", "prices:observe"}
+        scopes = sorted(set(body.scopes))
+        if not scopes or not set(scopes).issubset(allowed):
+            raise HTTPException(422, f"Scopes must be drawn from {sorted(allowed)}")
+        raw = f"fcpi_{secrets.token_urlsafe(32)}"
+        digest = hashlib.sha256(raw.encode()).hexdigest()
+        prefix = raw[:16]
+        row = db.execute(text(f"""
+            INSERT INTO {SCHEMA}.api_keys (user_id, name, key_prefix, key_hash, scopes)
+            VALUES (:uid, :name, :prefix, :digest, CAST(:scopes AS jsonb)) RETURNING id, created_at
+        """), {"uid": user["user_id"], "name": body.name, "prefix": prefix,
+                 "digest": digest, "scopes": json.dumps(scopes)}).fetchone()
+        db.commit()
+        return {"id": row.id, "name": body.name, "key": raw, "key_prefix": prefix,
+                "scopes": scopes, "created_at": row.created_at,
+                "warning": "This is the only time the full key will be returned."}
+
+    @api.delete("/api-keys/{key_id}", tags=["api-keys"])
+    def revoke_api_key(key_id: int, user: dict = Depends(get_current_user), db: Session = Depends(get_db)):
+        row = db.execute(text(f"""
+            UPDATE {SCHEMA}.api_keys SET revoked_at=NOW()
+            WHERE id=:id AND user_id=:uid AND revoked_at IS NULL RETURNING id
+        """), {"id": key_id, "uid": user["user_id"]}).fetchone()
+        if not row:
+            raise HTTPException(404, "API key not found")
+        db.commit()
+        return {"ok": True}
+
     # ── Sessions ──────────────────────────────────────────────────────
 
     @api.get("/sessions", response_model=list[SessionSummary], tags=["sessions"])
     def list_sessions(
         limit: int = 30,
-        user: dict | None = Depends(get_optional_user),
+        user: dict = Depends(get_current_user),
         db: Session = Depends(get_db),
     ):
-        uid = user["sub"] if user else 0
+        uid = user["user_id"]
         rows = db.execute(
             text(f"SELECT id, title, agent_slug, updated_at FROM {SCHEMA}.chat_sessions "
                  "WHERE user_id = :uid ORDER BY updated_at DESC LIMIT :lim"),
@@ -209,10 +536,10 @@ def create_app(root_path: str = "") -> FastAPI:
     @api.get("/sessions/{session_id}", response_model=SessionDetail, tags=["sessions"])
     def get_session(
         session_id: int,
-        user: dict | None = Depends(get_optional_user),
+        user: dict = Depends(get_current_user),
         db: Session = Depends(get_db),
     ):
-        uid = user["sub"] if user else 0
+        uid = user["user_id"]
         row = db.execute(
             text(f"SELECT id, title, agent_slug FROM {SCHEMA}.chat_sessions WHERE id = :sid AND user_id = :uid"),
             {"sid": session_id, "uid": uid},
@@ -233,10 +560,10 @@ def create_app(root_path: str = "") -> FastAPI:
     @api.delete("/sessions/{session_id}", tags=["sessions"])
     def delete_session(
         session_id: int,
-        user: dict | None = Depends(get_optional_user),
+        user: dict = Depends(get_current_user),
         db: Session = Depends(get_db),
     ):
-        uid = user["sub"] if user else 0
+        uid = user["user_id"]
         row = db.execute(
             text(f"SELECT id FROM {SCHEMA}.chat_sessions WHERE id = :sid AND user_id = :uid"),
             {"sid": session_id, "uid": uid},
@@ -252,10 +579,10 @@ def create_app(root_path: str = "") -> FastAPI:
     @api.post("/sessions/{session_id}/share", response_model=ShareResponse, tags=["sessions"])
     def share_session(
         session_id: int,
-        user: dict | None = Depends(get_optional_user),
+        user: dict = Depends(get_current_user),
         db: Session = Depends(get_db),
     ):
-        uid = user["sub"] if user else 0
+        uid = user["user_id"]
         row = db.execute(
             text(f"SELECT share_token FROM {SCHEMA}.chat_sessions WHERE id = :sid AND user_id = :uid"),
             {"sid": session_id, "uid": uid},
@@ -274,7 +601,11 @@ def create_app(root_path: str = "") -> FastAPI:
         return ShareResponse(token=token, url=f"/shared/{token}")
 
     @api.get("/shared/{token}", response_model=SharedSessionOut, tags=["sessions"])
-    def get_shared_session(token: str, db: Session = Depends(get_db)):
+    def get_shared_session(
+        token: str,
+        user: dict = Depends(get_current_user),
+        db: Session = Depends(get_db),
+    ):
         row = db.execute(
             text(f"SELECT s.id, s.title, s.agent_slug "
                  f"FROM {SCHEMA}.chat_sessions s "
@@ -301,10 +632,10 @@ def create_app(root_path: str = "") -> FastAPI:
                                "description": "SSE stream of chat events"}})
     def chat(
         body: ChatRequest,
-        user: dict | None = Depends(get_optional_user),
+        user: dict = Depends(get_current_user),
         db: Session = Depends(get_db),
     ):
-        uid = user["sub"] if user else 0
+        uid = user["user_id"]
 
         if body.session_id:
             row = db.execute(
@@ -359,7 +690,12 @@ def create_app(root_path: str = "") -> FastAPI:
             if body.lang != "en":
                 lang_directive = f"\nUser language: {body.lang} ({lang_info['name']}). Respond in {lang_info['name']}."
 
-            lc_messages = [SystemMessage(content=f"You are a CarHero car advisor. Respond helpfully and concisely.{lang_directive}")]
+            lc_messages = [SystemMessage(content=(
+                "You are FastCPI, a B2B web-market price intelligence assistant. "
+                "Cite observed source URLs and distinguish extracted evidence from discovery-only results. "
+                "Do not claim complete market coverage or describe FastCPI as an official CPI."
+                f"{lang_directive}"
+            ))]
             for h in history[-20:]:
                 if h["role"] == "user":
                     lc_messages.append(HumanMessage(content=h["content"]))
@@ -1007,6 +1343,18 @@ def create_app(root_path: str = "") -> FastAPI:
     def submit_contact(body: ContactRequest):
         log.info("Contact form: name=%s email=%s message=%s", body.name, body.email, body.message[:200])
         return {"ok": True, "message": "Thank you for your message. We will get back to you soon."}
+
+    # Keep the inherited implementation available for reference without exposing
+    # car-domain endpoints in the FastCPI product or OpenAPI contract.
+    if os.environ.get("ENABLE_LEGACY_CAR_ROUTES", "0") != "1":
+        legacy_prefixes = (
+            "/favorites", "/saved-searches", "/garage", "/user/profile",
+            "/market-map", "/listings", "/analytics/query", "/daily-scan",
+        )
+        api.router.routes = [
+            route for route in api.router.routes
+            if not getattr(route, "path", "").startswith(legacy_prefixes)
+        ]
 
     return api
 

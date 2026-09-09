@@ -15,7 +15,7 @@ from db import init_db
 
 app, rt = fast_app(
     hdrs=(app_styles(),),
-    secret_key=os.environ.get('APP_SECRET', 'carhero-app-2026'),
+    secret_key=os.environ.get('APP_SECRET', 'fastcpi-local-development'),
 )
 
 app.mount("/static", StaticFiles(directory="static"), name="static")
@@ -64,14 +64,6 @@ def delete_account(sess):
 from chat.routes import register_chat_routes
 register_chat_routes(rt)
 
-# --- Market Map + Analytics (Phase 6) ---
-
-from chat.market_map import register_market_map_routes
-register_market_map_routes(rt)
-
-from chat.analytics import register_analytics_routes
-register_analytics_routes(rt)
-
 # --- Auth routes ---
 
 from auth.routes import register_auth_routes
@@ -82,16 +74,17 @@ register_auth_routes(rt)
 from admin.routes import register_admin_routes
 register_admin_routes(rt)
 
-# --- Favorites + Saved Searches + Garage ---
-
-from chat.favorites import register_favorites_routes
-register_favorites_routes(rt)
-
-from chat.garage import register_garage_routes
-register_garage_routes(rt)
-
 from chat.daily_scan import register_daily_scan_routes
 register_daily_scan_routes(rt)
+
+from chat.market_overview import register_market_overview_routes
+register_market_overview_routes(rt)
+
+from chat.watchlists import register_watchlist_routes
+register_watchlist_routes(rt)
+
+from chat.account import register_account_routes
+register_account_routes(rt)
 
 
 # --- Scraper + Daily digest scheduler ---
@@ -215,7 +208,7 @@ try:
     from api.app import api_router
     app.mount("/api/v1", api_router)
     _api_status["mounted"] = True
-    print("INFO:     Mobile API mounted at /api/v1 (docs: /api/v1/docs)")
+    print("INFO:     FastCPI API mounted at /api/v1 (docs: /api/v1/docs)")
 except ImportError as e:
     _api_status["error"] = f"ImportError: {e}"
     print("INFO:     FastAPI not installed — mobile API disabled (monolith mode)")
@@ -237,8 +230,9 @@ async def startup():
     except Exception as e:
         print(f"DB init warning: {e}")
 
-    if os.environ.get("DIGEST_ENABLED", "1") == "1":
-        _start_scrape_and_digest()
+    if os.environ.get("WATCHLIST_SCANS_ENABLED", "1") == "1":
+        from monitoring.scanner import start_scheduler
+        start_scheduler(int(os.environ.get("WATCHLIST_SCAN_INTERVAL_SECONDS", "3600")))
 
 
 serve(port=int(os.environ.get('PORT', 5011)), reload=False)

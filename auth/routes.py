@@ -20,14 +20,16 @@ from auth.utils import (
 )
 from chat.layout import _head
 from utils.session import get_user_email, set_user_email, get_user_id, set_user_id, clear_user
+from db import SCHEMA
 
 log = logging.getLogger(__name__)
 
 GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID", "")
 GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET", "")
-GOOGLE_REDIRECT_URI = os.getenv("SERVICE_URL_CARHERO", "https://carhero.chat") + "/auth/google/callback"
-
-SCHEMA = "carhero"
+GOOGLE_REDIRECT_URI = os.getenv(
+    "GOOGLE_REDIRECT_URI",
+    os.getenv("SERVICE_URL_FASTCPI", "https://cpi.fastsme.com") + "/auth/google/callback",
+)
 
 
 def _get_db():
@@ -46,6 +48,7 @@ def register_auth_routes(rt):
     @rt("/auth/register", methods=["POST"])
     async def auth_register(request):
         from sqlalchemy import text
+        from auth.access import pending_invitation
         form = await request.form()
         email = (form.get("email") or "").strip().lower()
         password = form.get("password") or ""
@@ -63,8 +66,13 @@ def register_auth_routes(rt):
                 {"email": email},
             ).fetchone()
 
+            invitation = pending_invitation(db, email)
             if existing and existing.password_hash:
                 return JSONResponse({"error": "An account with this email already exists"}, status_code=409)
+            if existing and not existing.password_hash and not invitation:
+                return JSONResponse({"error": "This account uses Google Sign-In"}, status_code=409)
+            if not existing and not invitation:
+                return JSONResponse({"error": "FastCPI is invite-only. Ask an administrator for access."}, status_code=403)
 
             token = generate_token()
             pw_hash = hash_password(password)
@@ -85,6 +93,13 @@ def register_auth_routes(rt):
             db.close()
 
         send_verification_email(email, token, name)
+        from auth.access import consume_invitation
+        db = _get_db()
+        try:
+            consume_invitation(db, email)
+            db.commit()
+        finally:
+            db.close()
         return JSONResponse({"ok": True, "message": "Check your email to verify your account"})
 
     @rt("/auth/verify/{token}")
@@ -267,6 +282,8 @@ def register_auth_routes(rt):
 
         if not email or len(password) < 6:
             return JSONResponse({"error": "Email and password (min 6 chars) required"}, status_code=400)
+        if get_user_email(sess) != email:
+            return JSONResponse({"error": "Sign in with Google before setting a password"}, status_code=403)
 
         db = _get_db()
         try:
@@ -682,6 +699,25 @@ async function submitNotify(e) {
 
         tokens = token_resp.json()
         access_token = tokens.get("access_token")
+        id_token = tokens.get("id_token")
+        if not access_token or not id_token:
+            log.error("Google token exchange returned incomplete OIDC tokens")
+            return RedirectResponse("/?auth_error=google_token", status_code=303)
+
+        claims_resp = http_requests.get(
+            "https://oauth2.googleapis.com/tokeninfo",
+            params={"id_token": id_token},
+            timeout=10,
+        )
+        if claims_resp.status_code != 200:
+            log.warning("Google ID token validation failed")
+            return RedirectResponse("/?auth_error=google_token", status_code=303)
+        claims = claims_resp.json()
+        if claims.get("aud") != GOOGLE_CLIENT_ID or claims.get("iss") not in {
+            "accounts.google.com", "https://accounts.google.com",
+        }:
+            log.warning("Google ID token issuer/audience mismatch")
+            return RedirectResponse("/?auth_error=google_token", status_code=303)
 
         userinfo_resp = http_requests.get(
             "https://www.googleapis.com/oauth2/v2/userinfo",
@@ -696,8 +732,8 @@ async function submitNotify(e) {
         email = userinfo.get("email", "").lower().strip()
         name = userinfo.get("name", "")
 
-        if not email:
-            return RedirectResponse("/app", status_code=303)
+        if not email or not userinfo.get("verified_email"):
+            return RedirectResponse("/?auth_error=email_unverified", status_code=303)
 
         db = _get_db()
         try:
@@ -713,12 +749,17 @@ async function submitNotify(e) {
                     db.commit()
                 uid = row.id
             else:
+                from auth.access import consume_invitation, pending_invitation
+                invitation = pending_invitation(db, email)
+                if not invitation:
+                    return RedirectResponse("/?auth_error=invite_required", status_code=303)
                 result = db.execute(text(f"""
                     INSERT INTO {SCHEMA}.chat_users (email, name, is_verified)
                     VALUES (:email, :name, TRUE)
                     RETURNING id
                 """), {"email": email, "name": name})
                 uid = result.fetchone().id
+                consume_invitation(db, email)
                 db.commit()
 
             set_user_email(sess, email)

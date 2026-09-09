@@ -15,7 +15,7 @@ from utils.llm import build_agent_llm
 log = logging.getLogger(__name__)
 
 PROMPTS_DIR = Path(__file__).resolve().parent.parent / "prompts" / "system"
-SHARED_PROMPT_FILE = Path(__file__).resolve().parent.parent / "prompts" / "shared" / "car_context.md"
+SHARED_PROMPT_FILE = Path(__file__).resolve().parent.parent / "prompts" / "shared" / "price_context.md"
 
 
 def _load_system_prompt(slug: str) -> str:

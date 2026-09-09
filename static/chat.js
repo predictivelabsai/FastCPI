@@ -1,4 +1,4 @@
-/* CarHero -- chat client (SSE streaming, 3-pane interactions). */
+/* FastCPI -- chat client (SSE streaming, evidence pane, inline Plotly). */
 
 (() => {
     const $ = (sel) => document.querySelector(sel);
@@ -67,6 +67,30 @@
         if (m) m.scrollTop = m.scrollHeight;
     }
 
+    function escapeHTML(value) {
+        return String(value == null ? "" : value)
+            .replace(/&/g, "&amp;").replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+    }
+
+    function renderChart(payload) {
+        if (!payload || !payload.figure || !window.Plotly) return;
+        const host = $("#messages");
+        if (!host) return;
+        const card = document.createElement("div");
+        card.className = "chat-chart";
+        const title = document.createElement("div");
+        title.className = "chat-chart-title";
+        title.textContent = payload.title || "Market chart";
+        const plot = document.createElement("div");
+        plot.className = "chat-chart-plot";
+        card.append(title, plot);
+        host.appendChild(card);
+        Plotly.newPlot(plot, payload.figure.data, payload.figure.layout,
+                       { responsive: true, displayModeBar: false });
+        scrollMessagesBottom();
+    }
+
     function renderMarkdownLite(text) {
         if (window.marked) return marked.parse(text);
         return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
@@ -108,7 +132,7 @@
                 const blob = new Blob([tableToCSV(table)], { type: "text/csv" });
                 const a = document.createElement("a");
                 a.href = URL.createObjectURL(blob);
-                a.download = "carhero-data.csv";
+                a.download = "fastcpi-observations.csv";
                 a.click();
                 URL.revokeObjectURL(a.href);
             };
@@ -161,11 +185,11 @@
         let prompts = (slug && AGENT_PROMPTS[slug]) || [];
         if (!prompts.length) {
             prompts = [
-                "search: BMW X5 under 40k EUR",
-                "market: BMW 3 Series depreciation trends",
-                "value: 2020 Mercedes C300, 45k km",
-                "compare: Audi Q5 vs BMW X3 vs Volvo XC60",
-                "advise: EUR 50,000 budget, family SUV",
+                "price: A4 recycled printer paper in France",
+                "cpv: 30100000-0 and descendants in Germany",
+                "market: office supplies price index",
+                "compare: hourly IT support in Estonia and Latvia",
+                "watch: SKU ABC-123 in France each day",
             ];
         }
         row.innerHTML = "";
@@ -253,6 +277,8 @@
                         // noop
                     } else if (type === "artifact_show") {
                         showArtifact(payload);
+                    } else if (type === "chart") {
+                        renderChart(payload);
                     } else if (type === "error") {
                         hideThinking();
                         if (!bubble) bubble = addBubble("assistant", "", "");
@@ -334,6 +360,28 @@
     function renderArtifactHTML(p) {
         if (p.kind === "chart") {
             return '<div style="color:var(--ink-muted);font-size:12px">Loading chart...</div>';
+        }
+        if (p.kind === "prices" && Array.isArray(p.offers)) {
+            const observed = p.offers.map(o => {
+                const amount = o.comparable_amount != null ? o.comparable_amount : o.amount;
+                const unit = o.comparable_unit || o.unit || "unit";
+                const warnings = (o.warnings || []).map(escapeHTML).join(" · ");
+                return `<div class="price-card">
+                    <div class="price-card-head"><strong>${escapeHTML(o.title || "Observed offer")}</strong>
+                    <span class="evidence-badge">Observed</span></div>
+                    <div class="price-value">${escapeHTML(o.currency)} ${Number(amount).toLocaleString()} <small>/ ${escapeHTML(unit)}</small></div>
+                    <div class="price-source">${escapeHTML(o.seller || o.source_domain)} · ${escapeHTML(o.market || "")}</div>
+                    <div class="price-meta">Captured ${escapeHTML(o.captured_at || "")} · confidence ${Math.round(Number(o.confidence || 0) * 100)}%</div>
+                    ${warnings ? `<div class="price-warning">${warnings}</div>` : ""}
+                    <a href="${escapeHTML(o.url)}" target="_blank" rel="noopener noreferrer" class="deal-link">Open source &rarr;</a>
+                </div>`;
+            }).join("");
+            const discoveries = (p.discovery_only || p.discoveries || []).map(d => `<div class="discovery-row">
+                <span class="discovery-badge">Discovery only</span>
+                <a href="${escapeHTML(d.url)}" target="_blank" rel="noopener noreferrer">${escapeHTML(d.title || d.url)}</a>
+            </div>`).join("");
+            return (observed || '<p style="color:var(--ink-muted)">No structured price extracted.</p>') +
+                (discoveries ? `<h5 class="artifact-subhead">Candidate sources</h5>${discoveries}` : "");
         }
         if (p.kind === "deals" && Array.isArray(p.deals)) {
             if (!p.deals.length) return '<p style="color:var(--ink-muted)">No deals found.</p>';
@@ -516,7 +564,7 @@
         const msgs = document.querySelectorAll(".msg");
         const lines = [];
         msgs.forEach(m => {
-            const role = m.classList.contains("msg-user") ? "You" : "CarHero";
+            const role = m.classList.contains("msg-user") ? "You" : "FastCPI";
             const bubble = m.querySelector(".msg-bubble");
             if (bubble) lines.push(`${role}: ${bubble.textContent.trim()}`);
         });
@@ -601,7 +649,8 @@
 
 function switchAuthTab(tab) {
     document.getElementById('auth-form-login').style.display = tab === 'login' ? '' : 'none';
-    document.getElementById('auth-form-register').style.display = tab === 'register' ? '' : 'none';
+    const registerForm = document.getElementById('auth-form-register');
+    if (registerForm) registerForm.style.display = 'none';
     document.getElementById('auth-form-forgot').style.display = tab === 'forgot' ? '' : 'none';
     document.querySelectorAll('.auth-tab').forEach(t => t.classList.remove('active'));
     const tabEl = document.getElementById('auth-tab-' + tab);
@@ -633,7 +682,7 @@ async function doLogin() {
     if (data.ok) {
         location.reload();
     } else if (data.error === 'no_password') {
-        errEl.innerHTML = 'No password set. <a href="#" onclick="showSetPassword(\'' + email + '\');return false" style="color:#000;font-weight:600;">Set one now</a>';
+        errEl.textContent = 'This account uses Google Sign-In.';
     } else {
         errEl.textContent = data.error || 'Login failed';
     }

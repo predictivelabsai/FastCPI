@@ -1,39 +1,13 @@
-from fasthtml.common import *
+from fasthtml.common import Div, H1, H2, P
 
 
 def about_page():
     return Div(
-        Section(
-            Div(
-                H1('About CarHero', cls='font-display text-4xl font-extrabold text-black mb-4'),
-                P('AI-powered car advisory for the European premium market.',
-                  cls='text-lg text-gray-500'),
-                cls='max-w-7xl mx-auto relative z-10'
-            ),
-            cls='bg-white py-16 px-8'
-        ),
-        Section(
-            Div(
-                Div(
-                    H2('What we do', cls='text-2xl font-medium text-black mb-4'),
-                    P('CarHero helps car buyers across Europe find, compare, and value premium vehicles. '
-                      'We aggregate listings from AutoTrader UK, mobile.de, AutoScout24, and Autohero, '
-                      'covering BMW, Mercedes-Benz, Audi, Porsche, Jaguar, Land Rover, Volvo, Tesla, and Lexus.',
-                      cls='text-gray-500 text-sm leading-relaxed mb-6'),
-                    H2('How it works', cls='text-2xl font-medium text-black mb-4'),
-                    P('Our AI agents analyze thousands of real listings to provide fair market valuations, '
-                      'depreciation insights, and personalized buying recommendations. '
-                      'Whether you are comparing a BMW X5 in Germany vs the UK, or tracking price trends '
-                      'for a specific model, CarHero gives you the data to decide with confidence.',
-                      cls='text-gray-500 text-sm leading-relaxed mb-6'),
-                    H2('Technology', cls='text-2xl font-medium text-black mb-4'),
-                    P('Built with AI agents powered by large language models, real-time web scraping, '
-                      'and interactive data visualizations. We support 12 languages across our European platform.',
-                      cls='text-gray-500 text-sm leading-relaxed'),
-                    cls='max-w-3xl mx-auto'
-                ),
-                cls='max-w-7xl mx-auto'
-            ),
-            cls='py-20 px-8 bg-gray-50'
-        ),
+        H1("About FastCPI", cls="font-display text-4xl font-extrabold text-black mb-4"),
+        P("Evidence-led B2B web-market price intelligence.", cls="text-xl text-gray-500 mb-10"),
+        H2("What FastCPI measures", cls="text-2xl font-semibold mb-3"),
+        P("FastCPI observes public asking prices for goods and services, keeps source provenance, and normalises comparable commercial terms. It is not an official CPI and does not represent completed transactions or complete market coverage.", cls="text-gray-600 leading-relaxed mb-7"),
+        H2("Built for procurement", cls="text-2xl font-semibold mb-3"),
+        P("Procurement teams can search in plain language, by product identifier, or by CPV Version 2008 division and its descendants. Daily watchlists track changes across ten initial European markets.", cls="text-gray-600 leading-relaxed"),
+        cls="max-w-3xl mx-auto px-5 py-16",
     )

@@ -10,7 +10,7 @@ import time
 import base64
 
 
-JWT_SECRET = os.environ.get("JWT_SECRET", os.environ.get("APP_SECRET", "carhero-app-2026"))
+JWT_SECRET = os.environ.get("JWT_SECRET", os.environ.get("APP_SECRET", "fastcpi-local-development"))
 JWT_EXPIRY_HOURS = 72
 
 

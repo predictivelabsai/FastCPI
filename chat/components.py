@@ -10,6 +10,7 @@ from fasthtml.common import (
 )
 from agents.registry import CATEGORIES, AGENTS, AGENTS_BY_SLUG
 from utils.i18n import t, agent_t, category_t, LANGUAGES, js_translations
+from utils.fastcpi_i18n import tr
 
 
 def _chat_lang_dropdown(lang: str = "en"):
@@ -37,13 +38,11 @@ def signin_overlay(lang: str = "en"):
             Div(
                 Button("Sign In", id="auth-tab-login", cls="auth-tab active",
                        onclick="switchAuthTab('login')"),
-                Button("Register", id="auth-tab-register", cls="auth-tab",
-                       onclick="switchAuthTab('register')"),
                 cls="flex border-b border-gray-200 mb-4",
             ),
             # Login form
             Div(
-                P("Sign in to your CarHero account", cls="text-sm text-gray-500 mb-4"),
+                P("Sign in to your invited FastCPI account", cls="text-sm text-gray-500 mb-4"),
                 A(
                     Span(NotStr('<svg width="18" height="18" viewBox="0 0 18 18" xmlns="http://www.w3.org/2000/svg"><path d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.874 2.684-6.615z" fill="#4285F4"/><path d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 009 18z" fill="#34A853"/><path d="M3.964 10.71c-.18-.54-.282-1.117-.282-1.71s.102-1.17.282-1.71V4.958H.957A8.996 8.996 0 000 9s.348 1.452.957 2.042l3.007-2.332z" fill="#FBBC05"/><path d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 00.957 4.958L3.964 7.29C4.672 5.163 6.656 3.58 9 3.58z" fill="#EA4335"/></svg>'),
                      cls="google-btn-icon"),
@@ -69,28 +68,6 @@ def signin_overlay(lang: str = "en"):
                     cls="flex gap-2",
                 ),
                 id="auth-form-login",
-            ),
-            # Register form
-            Div(
-                P("Create a CarHero account", cls="text-sm text-gray-500 mb-4"),
-                Input(type="text", id="reg-name", placeholder="Name (optional)",
-                      cls="w-full px-3 py-2 border border-gray-200 rounded-md text-sm mb-3"),
-                Input(type="email", id="reg-email", placeholder="Email",
-                      cls="w-full px-3 py-2 border border-gray-200 rounded-md text-sm mb-3"),
-                Input(type="password", id="reg-password", placeholder="Password (min 6 chars)",
-                      cls="w-full px-3 py-2 border border-gray-200 rounded-md text-sm mb-3",
-                      onkeydown="if(event.key==='Enter')doRegister()"),
-                Div(id="reg-error", cls="text-red-500 text-xs mb-2"),
-                Div(id="reg-success", cls="text-green-600 text-xs mb-2"),
-                Div(
-                    Button("Register", onclick="doRegister()",
-                           cls="px-4 py-2 bg-black text-white rounded-md text-sm cursor-pointer border-none"),
-                    Button("Cancel", onclick="document.getElementById('signin-overlay').classList.remove('visible')",
-                           cls="px-4 py-2 bg-gray-100 text-gray-700 rounded-md text-sm cursor-pointer border-none ml-2"),
-                    cls="flex gap-2",
-                ),
-                id="auth-form-register",
-                style="display:none",
             ),
             # Forgot password form
             Div(
@@ -174,7 +151,7 @@ def left_pane(user_email=None, sessions=None, current_sid="", lang: str = "en"):
 
     return Div(
         Div(
-            A("Car", Span("Hero", cls="opacity-50"), href="/",
+            A("Fast", Span("CPI", cls="text-emerald-700"), href="/",
               cls="font-display text-lg font-bold text-black no-underline tracking-tight block mb-2"),
             Button(t("chat_new", lang), onclick="newChat()",
                    cls="new-chat-btn"),
@@ -191,11 +168,10 @@ def left_pane(user_email=None, sessions=None, current_sid="", lang: str = "en"):
             *agent_groups,
             H4("Workspace", cls="section-label"),
             A("Daily Scan", href="/app/daily-scan", cls="workspace-link"),
-            A("Market Map", href="/app/market-map", cls="workspace-link"),
-            A("Favorites", href="/app/favorites", cls="workspace-link"),
-            A("Saved Searches", href="/app/saved-searches", cls="workspace-link"),
-            A("My Garage", href="/app/garage", cls="workspace-link"),
-            A("Profile & Preferences", href="/app/profile", cls="workspace-link"),
+            A("Market Overview", href="/app/market-overview", cls="workspace-link"),
+            A("Watchlists", href="/app/watchlists", cls="workspace-link"),
+            A("API Documentation", href="/api/v1/docs", cls="workspace-link"),
+            A("Account & API Keys", href="/app/account", cls="workspace-link"),
             cls="agents-section",
         ),
         Div(auth_section, cls="auth-section"),
@@ -226,15 +202,15 @@ def center_pane(messages=None, current_agent_slug=None, lang: str = "en"):
     current_agent = AGENTS_BY_SLUG.get(current_agent_slug)
 
     welcome = Div(
-        H2(t("chat_welcome_title", lang), cls="text-2xl font-display font-bold mb-2"),
-        P(t("chat_welcome_body", lang), cls="text-sm text-gray-500 mb-6"),
+        H2(tr("chat_title", lang), cls="text-2xl font-display font-bold mb-2"),
+        P(tr("chat_body", lang), cls="text-sm text-gray-500 mb-6"),
         Div(id="sample-cards-row", cls="sample-cards-row"),
         id="welcome-hero",
         cls="welcome-hero",
         style="" if not messages else "display:none",
     )
 
-    header_title = current_agent.name if current_agent else "Car Advisor"
+    header_title = current_agent.name if current_agent else "Price Intelligence"
 
     return Div(
         Div(
@@ -273,7 +249,7 @@ def center_pane(messages=None, current_agent_slug=None, lang: str = "en"):
         Form(
             Textarea(
                 id="chat-input", name="msg", rows="1",
-                placeholder=t("chat_placeholder", lang),
+                placeholder=tr("placeholder", lang),
                 onkeydown="handleKey(event)", oninput="autoResize(this); onInputChange(this)",
             ),
             Button("->", id="send-btn", type="button", onclick="sendMessage(event)",
@@ -294,14 +270,14 @@ def right_pane(lang: str = "en"):
     return Div(
         Div(
             Div(
-                H4(t("chat_artifacts_title", lang), cls="artifact-title"),
-                Span(t("chat_artifacts_subtitle", lang), id="artifact-subtitle", cls="artifact-subtitle"),
+                H4("Evidence", cls="artifact-title"),
+                Span("Observed offers and discovery sources", id="artifact-subtitle", cls="artifact-subtitle"),
             ),
             Button(NotStr('<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>'), cls="right-pane-close", onclick="toggleArtifactPane()"),
             cls="artifact-header",
         ),
         Div(
-            P("Charts and tables will appear here.", cls="text-sm text-gray-400"),
+            P("Prices, source evidence and charts will appear here.", cls="text-sm text-gray-400"),
             id="artifact-empty",
             cls="px-4 py-8 text-center",
         ),
