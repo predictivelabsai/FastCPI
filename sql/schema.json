@@ -1,0 +1,44 @@
+{
+  "schema": "carhero",
+  "tables": {
+    "car_listings": {
+      "description": "Premium/luxury car listings from 4 European marketplaces",
+      "columns": [
+        "id", "make", "model", "variant", "generation",
+        "price_eur", "price_original", "currency",
+        "year", "mileage_km", "fuel_type", "transmission", "body_type",
+        "engine_size_cc", "power_hp", "power_kw", "torque_nm",
+        "drive_type", "steering_side", "gears",
+        "co2_grams", "fuel_consumption_l100km", "emission_class",
+        "doors", "seats", "exterior_color", "interior_color", "interior_material",
+        "condition", "first_registration_date", "owners_count", "accident_free", "service_history",
+        "features", "equipment_packages",
+        "source_url", "provider", "country", "city", "seller_type", "seller_name",
+        "listed_date", "scraped_at", "image_urls", "image_count",
+        "status", "created_at", "updated_at"
+      ],
+      "sample_makes": ["BMW", "Mercedes-Benz", "Audi", "Porsche", "Jaguar", "Land Rover", "Volvo", "Tesla", "Lexus"],
+      "providers": ["autotrader", "mobile_de", "autoscout24", "autohero"],
+      "countries": ["GB", "DE", "EU"],
+      "fuel_types": ["Petrol", "Diesel", "Electric", "Hybrid", "Plugin Hybrid"],
+      "transmissions": ["Automatic", "Manual", "Semi-automatic"],
+      "body_types": ["Sedan", "Estate", "SUV", "Coupe", "Convertible", "Hatchback"],
+      "conditions": ["new", "used", "certified"],
+      "steering_sides": ["LHD", "RHD"],
+      "seller_types": ["dealer", "private"]
+    },
+    "price_history": {
+      "description": "Price change tracking for car listings over time",
+      "columns": ["id", "listing_id", "price_eur", "recorded_at"]
+    },
+    "car_models": {
+      "description": "Reference table for make/model/generation lookup",
+      "columns": ["id", "make", "model", "generation", "body_type", "production_start", "production_end", "segment"]
+    },
+    "market_snapshots": {
+      "description": "Aggregated market statistics by make/model/country per date",
+      "columns": ["id", "make", "model", "country", "avg_price_eur", "median_price_eur", "listing_count", "avg_mileage_km", "avg_age_years", "snapshot_date", "created_at"]
+    }
+  },
+  "notes": "All prices in EUR. GBP from AutoTrader UK converted at ~1.17. Mileage in km (miles converted). Premium/luxury brands only."
+}

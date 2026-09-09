@@ -1,0 +1,49 @@
+providers:
+  autotrader:
+    name: "AutoTrader UK"
+    base_url: "https://www.autotrader.co.uk"
+    country: "GB"
+    currency: "GBP"
+    locale: "en-GB"
+  mobile_de:
+    name: "mobile.de"
+    base_url: "https://www.mobile.de"
+    country: "DE"
+    currency: "EUR"
+    locale: "de-DE"
+  autoscout24:
+    name: "AutoScout24"
+    base_url: "https://www.autoscout24.com"
+    country: "EU"
+    currency: "EUR"
+    locale: "en-GB"
+  autohero:
+    name: "Autohero"
+    base_url: "https://www.autohero.com"
+    country: "DE"
+    currency: "EUR"
+    locale: "de-DE"
+  auto24_ee:
+    name: "Auto24.ee"
+    base_url: "https://www.auto24.ee"
+    country: "EE"
+    currency: "EUR"
+    locale: "et-EE"
+  auto24_lt:
+    name: "Auto24.lt"
+    base_url: "https://www.auto24.lt"
+    country: "LT"
+    currency: "EUR"
+    locale: "lt-LT"
+  auto24_lv:
+    name: "Auto24.lv"
+    base_url: "https://www.auto24.lv"
+    country: "LV"
+    currency: "EUR"
+    locale: "lv-LV"
+  blocket:
+    name: "Blocket.se"
+    base_url: "https://www.blocket.se"
+    country: "SE"
+    currency: "SEK"
+    locale: "sv-SE"

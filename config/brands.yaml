@@ -1,0 +1,257 @@
+brands:
+  - name: BMW
+    featured: true
+    slugs:
+      autoscout24: bmw
+      theparking: bmw
+      autohero: bmw
+      autotrader: BMW
+      blocket: BMW
+      mobile_de: "3500"
+      auto24: "4"
+      otomoto: bmw
+      standvirtual: bmw
+      autovit: bmw
+      coches: bmw
+      marktplaats: bmw
+      nettiauto: bmw
+      bilbasen: bmw
+      finn: "749"
+      donedeal: BMW
+
+  - name: Mercedes-Benz
+    featured: true
+    slugs:
+      autoscout24: mercedes-benz
+      theparking: mercedes-benz
+      autohero: mercedes-benz
+      autotrader: Mercedes-Benz
+      blocket: Mercedes-Benz
+      mobile_de: "17200"
+      auto24: "12"
+      otomoto: mercedes-benz
+      standvirtual: mercedes-benz
+      autovit: mercedes-benz
+      coches: mercedes-benz
+      marktplaats: mercedes-benz
+      nettiauto: mercedes-benz
+      bilbasen: mercedes-benz
+      finn: "813"
+      donedeal: Mercedes-Benz
+
+  - name: Audi
+    featured: false
+    slugs:
+      autoscout24: audi
+      theparking: audi
+      autohero: audi
+      autotrader: Audi
+      blocket: Audi
+      mobile_de: "1900"
+      auto24: "2"
+      otomoto: audi
+      standvirtual: audi
+      autovit: audi
+      coches: audi
+      marktplaats: audi
+      nettiauto: audi
+      bilbasen: audi
+      finn: "744"
+      donedeal: Audi
+
+  - name: Porsche
+    featured: true
+    slugs:
+      autoscout24: porsche
+      theparking: porsche
+      autohero: porsche
+      autotrader: Porsche
+      blocket: Porsche
+      mobile_de: "20100"
+      auto24: "140"
+      otomoto: porsche
+      standvirtual: porsche
+      autovit: porsche
+      coches: porsche
+      marktplaats: porsche
+      nettiauto: porsche
+      bilbasen: porsche
+      finn: "825"
+      donedeal: Porsche
+
+  - name: Jaguar
+    featured: true
+    slugs:
+      autoscout24: jaguar
+      theparking: jaguar
+      autohero: jaguar
+      autotrader: Jaguar
+      blocket: Jaguar
+      mobile_de: "11600"
+      auto24: "36"
+      otomoto: jaguar
+      standvirtual: jaguar
+      autovit: jaguar
+      coches: jaguar
+      marktplaats: jaguar
+      nettiauto: jaguar
+      bilbasen: jaguar
+      finn: "790"
+      donedeal: Jaguar
+
+  - name: Land Rover
+    featured: true
+    slugs:
+      autoscout24: land-rover
+      theparking: land-rover
+      autohero: land-rover
+      autotrader: Land Rover
+      blocket: Land Rover
+      mobile_de: "15600"
+      auto24: "42"
+      otomoto: land-rover
+      standvirtual: land-rover
+      autovit: land-rover
+      coches: land-rover
+      marktplaats: land-rover
+      nettiauto: land-rover
+      bilbasen: land-rover
+      finn: "798"
+      donedeal: Land Rover
+
+  - name: Volvo
+    featured: false
+    slugs:
+      autoscout24: volvo
+      theparking: volvo
+      autohero: volvo
+      autotrader: Volvo
+      blocket: Volvo
+      mobile_de: "25100"
+      auto24: "10"
+      otomoto: volvo
+      standvirtual: volvo
+      autovit: volvo
+      coches: volvo
+      marktplaats: volvo
+      nettiauto: volvo
+      bilbasen: volvo
+      finn: "845"
+      donedeal: Volvo
+
+  - name: Tesla
+    featured: true
+    slugs:
+      autoscout24: tesla
+      theparking: tesla
+      autohero: tesla
+      autotrader: Tesla
+      blocket: Tesla
+      mobile_de: "27300"
+      auto24: "642"
+      otomoto: tesla
+      standvirtual: tesla
+      autovit: tesla
+      coches: tesla
+      marktplaats: tesla
+      nettiauto: tesla
+      bilbasen: tesla
+      finn: "2078"
+      donedeal: Tesla
+
+  - name: Lexus
+    featured: false
+    slugs:
+      autoscout24: lexus
+      theparking: lexus
+      autohero: lexus
+      autotrader: Lexus
+      blocket: Lexus
+      mobile_de: "15400"
+      auto24: "35"
+      otomoto: lexus
+      standvirtual: lexus
+      autovit: lexus
+      coches: lexus
+      marktplaats: lexus
+      nettiauto: lexus
+      bilbasen: lexus
+      finn: "800"
+      donedeal: Lexus
+
+  - name: Maserati
+    featured: true
+    slugs:
+      autoscout24: maserati
+      theparking: maserati
+      autohero: maserati
+      autotrader: Maserati
+      blocket: Maserati
+      mobile_de: "16800"
+      auto24: "85"
+      otomoto: maserati
+      standvirtual: maserati
+      autovit: maserati
+      coches: maserati
+      marktplaats: maserati
+      nettiauto: maserati
+      bilbasen: maserati
+      finn: "810"
+      donedeal: Maserati
+
+  - name: Alfa Romeo
+    featured: true
+    slugs:
+      autoscout24: alfa-romeo
+      theparking: alfa-romeo
+      autohero: alfa-romeo
+      autotrader: Alfa Romeo
+      blocket: Alfa Romeo
+      mobile_de: "900"
+      auto24: "1"
+      otomoto: alfa-romeo
+      standvirtual: alfa-romeo
+      autovit: alfa-romeo
+      coches: alfa-romeo
+      marktplaats: alfa-romeo
+      nettiauto: alfa-romeo
+      bilbasen: alfa-romeo
+      finn: "741"
+      donedeal: Alfa Romeo
+
+  - name: Ferrari
+    featured: true
+    slugs:
+      autoscout24: ferrari
+      theparking: ferrari
+      autohero: ferrari
+      autotrader: Ferrari
+      blocket: Ferrari
+      mobile_de: "8600"
+      auto24: "30"
+      otomoto: ferrari
+      standvirtual: ferrari
+      autovit: ferrari
+      coches: ferrari
+      marktplaats: ferrari
+      nettiauto: ferrari
+      bilbasen: ferrari
+      finn: "778"
+      donedeal: Ferrari
+
+  - name: Corvette
+    featured: false
+    slugs:
+      autoscout24: corvette
+      theparking: corvette
+      mobile_de: "5900"
+      autotrader: Corvette
+      blocket: Corvette
+      otomoto: corvette
+      standvirtual: corvette
+      autovit: corvette
+      coches: corvette
+      marktplaats: corvette
+      nettiauto: corvette
+      bilbasen: corvette
+      donedeal: Corvette

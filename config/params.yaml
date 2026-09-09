@@ -1,0 +1,16 @@
+premium_brands:
+  - BMW
+  - Mercedes-Benz
+  - Audi
+  - Porsche
+  - Jaguar
+  - Land Rover
+  - Volvo
+  - Tesla
+  - Lexus
+
+scrape_max_pages: 50
+scrape_delay_seconds: 2
+checkpoint_interval: 25
+
+gbp_to_eur: 1.17

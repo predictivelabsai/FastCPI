@@ -1,0 +1,416 @@
+# Canonical variant catalog for apples-to-apples price comparisons.
+#
+# Each entry defines a "clean" trackable variant -- a car identity where
+# the name alone is enough for meaningful price comparison across markets.
+# These are models where options/transmission don't dominate pricing.
+#
+# Fields:
+#   make:             Must match car_listings.make exactly
+#   model_pattern:    Regex matching the model field across providers
+#   canonical_label:  Display name used for grouping (unique key)
+#   generation:       Generation code (e.g., "991", "E46")
+#   year_range:       [start, end] production years
+#   match_keywords:   Required keywords in model+variant text (ALL must match)
+#   exclude_keywords: If ANY found, reject the match
+#   clean_level:      "high" = single spec, "medium" = some option spread
+
+variants:
+
+  # ── Porsche ──────────────────────────────────────────────────────────
+
+  - make: Porsche
+    model_pattern: "^(911|996)$"
+    canonical_label: "Porsche 911 GT3 (996)"
+    generation: "996"
+    year_range: [1999, 2005]
+    match_keywords: ["GT3"]
+    exclude_keywords: ["GT3 RS"]
+    clean_level: high
+
+  - make: Porsche
+    model_pattern: "^(911|997)$"
+    canonical_label: "Porsche 911 GT3 (997)"
+    generation: "997"
+    year_range: [2006, 2012]
+    match_keywords: ["GT3"]
+    exclude_keywords: ["GT3 RS"]
+    clean_level: high
+
+  - make: Porsche
+    model_pattern: "^(911|991)$"
+    canonical_label: "Porsche 911 GT3 (991)"
+    generation: "991"
+    year_range: [2013, 2019]
+    match_keywords: ["GT3"]
+    exclude_keywords: ["GT3 RS", "GT3 Touring"]
+    clean_level: high
+
+  - make: Porsche
+    model_pattern: "^(911|992)$"
+    canonical_label: "Porsche 911 GT3 (992)"
+    generation: "992"
+    year_range: [2021, 2026]
+    match_keywords: ["GT3"]
+    exclude_keywords: ["GT3 RS", "GT3 Touring"]
+    clean_level: high
+
+  - make: Porsche
+    model_pattern: "^(911|997)$"
+    canonical_label: "Porsche 911 GT3 RS (997)"
+    generation: "997"
+    year_range: [2006, 2012]
+    match_keywords: ["GT3 RS"]
+    exclude_keywords: []
+    clean_level: high
+
+  - make: Porsche
+    model_pattern: "^(911|991)$"
+    canonical_label: "Porsche 911 GT3 RS (991)"
+    generation: "991"
+    year_range: [2015, 2019]
+    match_keywords: ["GT3 RS"]
+    exclude_keywords: []
+    clean_level: high
+
+  - make: Porsche
+    model_pattern: "^(911|992)$"
+    canonical_label: "Porsche 911 GT3 RS (992)"
+    generation: "992"
+    year_range: [2022, 2026]
+    match_keywords: ["GT3 RS"]
+    exclude_keywords: []
+    clean_level: high
+
+  - make: Porsche
+    model_pattern: "^(911|991)$"
+    canonical_label: "Porsche 911 GT2 RS (991)"
+    generation: "991"
+    year_range: [2017, 2020]
+    match_keywords: ["GT2 RS"]
+    exclude_keywords: []
+    clean_level: high
+
+  - make: Porsche
+    model_pattern: "^(911|992)$"
+    canonical_label: "Porsche 911 Turbo S (992)"
+    generation: "992"
+    year_range: [2020, 2026]
+    match_keywords: ["Turbo S"]
+    exclude_keywords: []
+    clean_level: medium
+
+  - make: Porsche
+    model_pattern: "^(911|991)$"
+    canonical_label: "Porsche 911 R (991)"
+    generation: "991"
+    year_range: [2016, 2017]
+    match_keywords: ["911 R", "991 R"]
+    exclude_keywords: ["RS"]
+    clean_level: high
+
+  - make: Porsche
+    model_pattern: "^(911|992)$"
+    canonical_label: "Porsche 911 Dakar (992)"
+    generation: "992"
+    year_range: [2022, 2026]
+    match_keywords: ["Dakar"]
+    exclude_keywords: []
+    clean_level: high
+
+  - make: Porsche
+    model_pattern: "^918"
+    canonical_label: "Porsche 918 Spyder"
+    generation: null
+    year_range: [2013, 2015]
+    match_keywords: ["918"]
+    exclude_keywords: []
+    clean_level: high
+
+  - make: Porsche
+    model_pattern: "^(Cayman|718|981|982)"
+    canonical_label: "Porsche Cayman GT4"
+    generation: null
+    year_range: [2015, 2026]
+    match_keywords: ["GT4"]
+    exclude_keywords: ["GT4 RS"]
+    clean_level: high
+
+  - make: Porsche
+    model_pattern: "^(Cayman|718|982)"
+    canonical_label: "Porsche Cayman GT4 RS"
+    generation: null
+    year_range: [2022, 2026]
+    match_keywords: ["GT4 RS"]
+    exclude_keywords: []
+    clean_level: high
+
+  # ── Ferrari ──────────────────────────────────────────────────────────
+
+  - make: Ferrari
+    model_pattern: "^458"
+    canonical_label: "Ferrari 458 Speciale"
+    generation: null
+    year_range: [2013, 2015]
+    match_keywords: ["Speciale"]
+    exclude_keywords: ["Speciale A", "Aperta"]
+    clean_level: high
+
+  - make: Ferrari
+    model_pattern: "^458"
+    canonical_label: "Ferrari 458 Speciale A"
+    generation: null
+    year_range: [2014, 2016]
+    match_keywords: ["Speciale A", "Aperta"]
+    exclude_keywords: []
+    clean_level: high
+
+  - make: Ferrari
+    model_pattern: "^488"
+    canonical_label: "Ferrari 488 Pista"
+    generation: null
+    year_range: [2018, 2020]
+    match_keywords: ["Pista"]
+    exclude_keywords: ["Piloti"]
+    clean_level: high
+
+  - make: Ferrari
+    model_pattern: "^488"
+    canonical_label: "Ferrari 488 GTB"
+    generation: null
+    year_range: [2015, 2020]
+    match_keywords: ["GTB"]
+    exclude_keywords: ["Pista"]
+    clean_level: medium
+
+  - make: Ferrari
+    model_pattern: "^(512|F512)"
+    canonical_label: "Ferrari 512 TR"
+    generation: null
+    year_range: [1991, 1994]
+    match_keywords: ["512"]
+    exclude_keywords: ["M"]
+    clean_level: high
+
+  - make: Ferrari
+    model_pattern: "^F40"
+    canonical_label: "Ferrari F40"
+    generation: null
+    year_range: [1987, 1992]
+    match_keywords: ["F40"]
+    exclude_keywords: []
+    clean_level: high
+
+  - make: Ferrari
+    model_pattern: "^812"
+    canonical_label: "Ferrari 812 Competizione"
+    generation: null
+    year_range: [2021, 2024]
+    match_keywords: ["Competizione"]
+    exclude_keywords: ["Aperta"]
+    clean_level: high
+
+  - make: Ferrari
+    model_pattern: "^296"
+    canonical_label: "Ferrari 296 GTB"
+    generation: null
+    year_range: [2022, 2026]
+    match_keywords: ["GTB"]
+    exclude_keywords: ["GTS"]
+    clean_level: high
+
+  # ── BMW ──────────────────────────────────────────────────────────────
+
+  - make: BMW
+    model_pattern: "^M3"
+    canonical_label: "BMW M3 CSL (E46)"
+    generation: "E46"
+    year_range: [2003, 2004]
+    match_keywords: ["CSL"]
+    exclude_keywords: []
+    clean_level: high
+
+  - make: BMW
+    model_pattern: "^M3"
+    canonical_label: "BMW M3 CS (G80)"
+    generation: "G80"
+    year_range: [2023, 2026]
+    match_keywords: ["CS"]
+    exclude_keywords: ["CSL"]
+    clean_level: high
+
+  - make: BMW
+    model_pattern: "^M4"
+    canonical_label: "BMW M4 GTS (F82)"
+    generation: "F82"
+    year_range: [2016, 2017]
+    match_keywords: ["GTS"]
+    exclude_keywords: []
+    clean_level: high
+
+  - make: BMW
+    model_pattern: "^M5"
+    canonical_label: "BMW M5 CS (F90)"
+    generation: "F90"
+    year_range: [2021, 2023]
+    match_keywords: ["CS"]
+    exclude_keywords: ["CSL"]
+    clean_level: high
+
+  # ── Mercedes-Benz ────────────────────────────────────────────────────
+
+  - make: Mercedes-Benz
+    model_pattern: "^(AMG\\s*GT|GT)"
+    canonical_label: "Mercedes-AMG GT Black Series"
+    generation: null
+    year_range: [2020, 2022]
+    match_keywords: ["Black Series"]
+    exclude_keywords: []
+    clean_level: high
+
+  - make: Mercedes-Benz
+    model_pattern: "^(AMG\\s*GT|GT)"
+    canonical_label: "Mercedes-AMG GT R"
+    generation: null
+    year_range: [2017, 2021]
+    match_keywords: ["GT R", "GTR"]
+    exclude_keywords: ["Black Series", "GT R Pro"]
+    clean_level: high
+
+  - make: Mercedes-Benz
+    model_pattern: "^SLS"
+    canonical_label: "Mercedes-Benz SLS AMG"
+    generation: null
+    year_range: [2010, 2015]
+    match_keywords: ["SLS"]
+    exclude_keywords: []
+    clean_level: high
+
+  # ── Other Brands ─────────────────────────────────────────────────────
+
+  - make: Alfa Romeo
+    model_pattern: "^4C"
+    canonical_label: "Alfa Romeo 4C"
+    generation: null
+    year_range: [2013, 2020]
+    match_keywords: ["4C"]
+    exclude_keywords: []
+    clean_level: high
+
+  - make: Alfa Romeo
+    model_pattern: "^Giulia"
+    canonical_label: "Alfa Romeo Giulia Quadrifoglio"
+    generation: null
+    year_range: [2016, 2026]
+    match_keywords: ["Quadrifoglio"]
+    exclude_keywords: []
+    clean_level: high
+
+  - make: Maserati
+    model_pattern: "^MC20"
+    canonical_label: "Maserati MC20"
+    generation: null
+    year_range: [2021, 2026]
+    match_keywords: ["MC20"]
+    exclude_keywords: []
+    clean_level: high
+
+  # ── Tesla ────────────────────────────────────────────────────────────
+
+  - make: Tesla
+    model_pattern: "^Model 3"
+    canonical_label: "Tesla Model 3 Performance"
+    generation: null
+    year_range: [2018, 2026]
+    match_keywords: ["Performance"]
+    exclude_keywords: []
+    clean_level: medium
+
+  - make: Tesla
+    model_pattern: "^Model 3"
+    canonical_label: "Tesla Model 3 Long Range"
+    generation: null
+    year_range: [2017, 2026]
+    match_keywords: ["Long Range"]
+    exclude_keywords: ["Performance"]
+    clean_level: medium
+
+  - make: Tesla
+    model_pattern: "^Model 3"
+    canonical_label: "Tesla Model 3 Standard"
+    generation: null
+    year_range: [2017, 2026]
+    match_keywords: ["Standard"]
+    exclude_keywords: ["Long Range", "Performance"]
+    clean_level: medium
+
+  - make: Tesla
+    model_pattern: "^Model Y"
+    canonical_label: "Tesla Model Y Performance"
+    generation: null
+    year_range: [2020, 2026]
+    match_keywords: ["Performance"]
+    exclude_keywords: []
+    clean_level: medium
+
+  - make: Tesla
+    model_pattern: "^Model Y"
+    canonical_label: "Tesla Model Y Long Range"
+    generation: null
+    year_range: [2020, 2026]
+    match_keywords: ["Long Range"]
+    exclude_keywords: ["Performance"]
+    clean_level: medium
+
+  - make: Tesla
+    model_pattern: "^Model S"
+    canonical_label: "Tesla Model S Plaid"
+    generation: null
+    year_range: [2021, 2026]
+    match_keywords: ["Plaid"]
+    exclude_keywords: []
+    clean_level: high
+
+  - make: Tesla
+    model_pattern: "^Model S"
+    canonical_label: "Tesla Model S Long Range"
+    generation: null
+    year_range: [2012, 2026]
+    match_keywords: ["Long Range"]
+    exclude_keywords: ["Plaid"]
+    clean_level: medium
+
+  - make: Tesla
+    model_pattern: "^Model X"
+    canonical_label: "Tesla Model X Plaid"
+    generation: null
+    year_range: [2021, 2026]
+    match_keywords: ["Plaid"]
+    exclude_keywords: []
+    clean_level: high
+
+  - make: Tesla
+    model_pattern: "^Model X"
+    canonical_label: "Tesla Model X Long Range"
+    generation: null
+    year_range: [2015, 2026]
+    match_keywords: ["Long Range"]
+    exclude_keywords: ["Plaid"]
+    clean_level: medium
+
+  - make: Tesla
+    model_pattern: "^Cybertruck"
+    canonical_label: "Tesla Cybertruck"
+    generation: null
+    year_range: [2023, 2026]
+    match_keywords: ["Cybertruck"]
+    exclude_keywords: []
+    clean_level: high
+
+  - make: Tesla
+    model_pattern: "^Roadster"
+    canonical_label: "Tesla Roadster"
+    generation: null
+    year_range: [2008, 2012]
+    match_keywords: ["Roadster"]
+    exclude_keywords: []
+    clean_level: high

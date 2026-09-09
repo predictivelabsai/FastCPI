@@ -1,0 +1,25 @@
+python-fasthtml==0.14.2
+sqlalchemy==2.0.50
+psycopg2-binary==2.9.12
+python-dotenv==1.2.2
+uvicorn==0.49.0
+python-multipart==0.0.32
+langchain-core==1.4.1
+langchain-openai==1.2.2
+langgraph==1.2.4
+plotly==6.8.0
+pandas==3.0.3
+numpy==2.4.6
+httpx==0.28.1
+pydantic-settings==2.14.1
+playwright==1.60.0
+pyyaml==6.0.3
+exa-py==2.13.0
+bcrypt==4.3.0
+requests==2.32.3
+# Mobile API (optional — monolith works without these)
+fastapi==0.136.3
+email-validator==2.2.0
+# Testing
+pytest==8.4.1
+pytest-asyncio==1.0.0
