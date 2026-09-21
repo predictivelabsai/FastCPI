@@ -15,6 +15,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 
-HEALTHCHECK NONE
+HEALTHCHECK --interval=30s --timeout=10s --start-period=20s --retries=3 \
+    CMD python -c "from monitoring.health import latest_worker_health; raise SystemExit(0 if latest_worker_health()['ready'] else 1)"
 
 CMD ["python", "-m", "scripts.watchlist_worker"]
