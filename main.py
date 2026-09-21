@@ -110,6 +110,8 @@ register_auth_routes(rt)
 
 from admin.routes import register_admin_routes
 register_admin_routes(rt)
+from admin.operations import register_operations_routes
+register_operations_routes(rt)
 
 from chat.daily_scan import register_daily_scan_routes
 register_daily_scan_routes(rt)

@@ -142,7 +142,11 @@ def register_admin_routes(rt):
             Div(
                 Div(
                     H1("FastCPI Admin"),
-                    A("< Back to app", href="/app", cls="text-sm text-gray-500 no-underline hover:text-black"),
+                    Div(
+                        A("Operations", href="/admin/operations", cls="text-sm text-gray-500 no-underline hover:text-black"),
+                        Span(" · "),
+                        A("< Back to app", href="/app", cls="text-sm text-gray-500 no-underline hover:text-black"),
+                    ),
                     cls="admin-header",
                 ),
 

@@ -23,9 +23,27 @@ def queue_health(db) -> dict[str, int]:
           (SELECT COUNT(*) FROM {SCHEMA}.observation_jobs WHERE status='running' AND lease_expires_at>=NOW()) AS running_jobs,
           (SELECT COUNT(*) FROM {SCHEMA}.scan_runs WHERE status='failed' AND completed_at>=NOW()-INTERVAL '24 hours')
           +
-          (SELECT COUNT(*) FROM {SCHEMA}.observation_jobs WHERE status='failed' AND completed_at>=NOW()-INTERVAL '24 hours') AS failed_24h
+          (SELECT COUNT(*) FROM {SCHEMA}.observation_jobs WHERE status='failed' AND completed_at>=NOW()-INTERVAL '24 hours') AS failed_24h,
+          (SELECT COUNT(*) FROM {SCHEMA}.scan_runs WHERE status='running' AND lease_expires_at<NOW())
+          +
+          (SELECT COUNT(*) FROM {SCHEMA}.observation_jobs WHERE status='running' AND lease_expires_at<NOW()) AS stalled_jobs,
+          (SELECT COUNT(*) FROM {SCHEMA}.scan_runs WHERE status='failed')
+          +
+          (SELECT COUNT(*) FROM {SCHEMA}.observation_jobs WHERE status='failed') AS dead_letters,
+          GREATEST(
+            COALESCE((SELECT EXTRACT(EPOCH FROM (NOW()-MIN(created_at))) FROM {SCHEMA}.scan_runs
+                      WHERE status IN ('queued','retry')),0),
+            COALESCE((SELECT EXTRACT(EPOCH FROM (NOW()-MIN(created_at))) FROM {SCHEMA}.observation_jobs
+                      WHERE status IN ('queued','retry')),0)
+          ) AS oldest_queue_age_seconds
     """)).fetchone()
-    return {key: int(getattr(row, key) or 0) for key in ("queue_depth", "running_jobs", "failed_24h")}
+    return {
+        key: int(getattr(row, key) or 0)
+        for key in (
+            "queue_depth", "running_jobs", "failed_24h", "stalled_jobs",
+            "dead_letters", "oldest_queue_age_seconds",
+        )
+    }
 
 
 def record_worker_heartbeat(worker_id: str, status: str = "ready", metadata: dict | None = None) -> dict:
@@ -34,11 +52,15 @@ def record_worker_heartbeat(worker_id: str, status: str = "ready", metadata: dic
         health = queue_health(db)
         db.execute(text(f"""
             INSERT INTO {SCHEMA}.worker_heartbeats
-                (worker_id,status,queue_depth,running_jobs,failed_24h,metadata)
-            VALUES (:worker,:status,:queue_depth,:running_jobs,:failed_24h,CAST(:metadata AS jsonb))
+                (worker_id,status,queue_depth,running_jobs,failed_24h,stalled_jobs,
+                 dead_letters,oldest_queue_age_seconds,metadata)
+            VALUES (:worker,:status,:queue_depth,:running_jobs,:failed_24h,:stalled_jobs,
+                    :dead_letters,:oldest_queue_age_seconds,CAST(:metadata AS jsonb))
             ON CONFLICT (worker_id) DO UPDATE SET
                 status=EXCLUDED.status,queue_depth=EXCLUDED.queue_depth,
                 running_jobs=EXCLUDED.running_jobs,failed_24h=EXCLUDED.failed_24h,
+                stalled_jobs=EXCLUDED.stalled_jobs,dead_letters=EXCLUDED.dead_letters,
+                oldest_queue_age_seconds=EXCLUDED.oldest_queue_age_seconds,
                 metadata=EXCLUDED.metadata,last_seen_at=NOW()
         """), {
             "worker": worker_id[:160], "status": status[:30], **health,
@@ -66,5 +88,12 @@ def latest_worker_health(max_age_seconds: int = 180) -> dict:
     payload["last_seen_at"] = payload["last_seen_at"].astimezone(timezone.utc).isoformat()
     payload["age_seconds"] = float(payload["age_seconds"] or 0)
     payload["ready"] = payload["status"] == "ready" and payload["age_seconds"] <= max_age_seconds
+    payload["alerts"] = [
+        name for name, active in (
+            ("stalled_jobs", payload.get("stalled_jobs", 0) > 0),
+            ("dead_letters", payload.get("dead_letters", 0) > 0),
+            ("queue_slo", payload.get("oldest_queue_age_seconds", 0) > 900),
+        ) if active
+    ]
     payload["checked_at"] = datetime.now(timezone.utc).isoformat()
     return payload

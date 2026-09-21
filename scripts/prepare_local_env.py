@@ -106,6 +106,7 @@ def main() -> int:
         "DAILY_OBSERVATION_JOB_QUOTA": "25",
         "DAILY_EXA_SEARCH_QUOTA": "100",
         "DAILY_PAGE_FETCH_QUOTA": "1000",
+        "DOMAIN_FETCHES_PER_MINUTE": "30",
         "DIGEST_ENABLED": "0",
     }
     changed = [key for key, value in values.items() if current.get(key) != value]

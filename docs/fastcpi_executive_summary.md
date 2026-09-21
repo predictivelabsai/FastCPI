@@ -31,7 +31,7 @@ Status: 21 September 2026
 ## Roadmap beyond the pilot
 
 - **Comparable evidence** — Complete structured capture of pack quantity, VAT, shipping, minimum order, delivery country, service period and supplier identity, with reviewable exclusion reasons.
-- **Reliable daily operations** — A standalone Coolify worker, shared Exa/page-fetch usage ledger, daily user quotas and worker-health endpoint are implemented. The remaining operational proof is seven consecutive healthy scan days, plus stalled-job alerts and dead-letter operations.
+- **Reliable daily operations** — A standalone Coolify worker, shared Exa/page-fetch ledger, daily user quotas, domain-level throttling and worker-health endpoint are implemented. Administrators can inspect queue SLOs and audit/replay dead letters. The remaining proof is seven consecutive healthy scan days and external alert delivery.
 - **Broader supplier coverage** — Recurring-source reporting and maintained fixtures now cover the strongest observed starter sources. Next, add source-specific adapters only where real extraction failures justify them, then expand evidence depth across the ten-line sample.
 - **Integration maturity** — Add signed webhooks, usage reporting, consistent API pagination, MCP conformance testing and standards-based OAuth discovery.
 - **Procurement workflow** — Add evidence exports, saved CPV baskets, organisation teams, role controls, quote comparison and approval workflows.

@@ -147,6 +147,10 @@ def test_search_separates_observed_from_discovery_only(monkeypatch):
     from pricing.extractors import ExtractedOffer
 
     monkeypatch.setattr(
+        "pricing.service.acquire_domain_fetch",
+        lambda domain: type("Decision", (), {"allowed": True})(),
+    )
+    monkeypatch.setattr(
         "pricing.service.discover",
         lambda *args, **kwargs: [
             {"url": "https://supplier.example/observed", "title": "Observed"},
@@ -168,6 +172,10 @@ def test_search_separates_observed_from_discovery_only(monkeypatch):
 def test_search_does_not_rank_a_conflicting_country_domain(monkeypatch):
     from pricing.extractors import ExtractedOffer
 
+    monkeypatch.setattr(
+        "pricing.service.acquire_domain_fetch",
+        lambda domain: type("Decision", (), {"allowed": True})(),
+    )
     monkeypatch.setattr(
         "pricing.service.discover",
         lambda *args, **kwargs: [{"url": "https://supplier.mx/paper", "title": "Cheap paper"}],

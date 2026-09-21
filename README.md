@@ -61,7 +61,9 @@ Watchlist scans use durable PostgreSQL jobs with leases, bounded retries and per
 The Compose topology disables scan execution in the web container and runs
 `python -m scripts.watchlist_worker` separately. `/health/worker` reports the latest persisted
 heartbeat and queue state. A shared ledger applies daily user limits to Exa searches and public-page
-fetches across every paid discovery path. Threshold events include the best observed source URL;
+fetches across every paid discovery path, while a database-backed minute budget throttles each
+supplier domain across all processes. `/admin/operations` provides queue SLOs, paid-usage totals and
+audited dead-letter replay. Threshold events include the best observed source URL;
 when email is enabled, one Postmark alert is sent for that scan and the event is marked notified.
 Production uses `Dockerfile.worker` for the no-route Coolify worker application.
 

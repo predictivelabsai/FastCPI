@@ -32,6 +32,9 @@ def test_latest_worker_health_is_json_ready(monkeypatch):
         "queue_depth": 2,
         "running_jobs": 1,
         "failed_24h": 0,
+        "stalled_jobs": 1,
+        "dead_letters": 2,
+        "oldest_queue_age_seconds": 1200,
         "metadata": {},
         "started_at": now - timedelta(minutes=5),
         "last_seen_at": now,
@@ -45,6 +48,7 @@ def test_latest_worker_health_is_json_ready(monkeypatch):
     assert payload["started_at"].endswith("+00:00")
     assert payload["last_seen_at"].endswith("+00:00")
     assert payload["age_seconds"] == 1.25
+    assert payload["alerts"] == ["stalled_jobs", "dead_letters", "queue_slo"]
 
 
 def test_latest_worker_health_reports_missing(monkeypatch):

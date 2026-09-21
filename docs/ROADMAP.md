@@ -35,6 +35,9 @@ product for procurement teams. It is not an official consumer price index.
 - A shared paid-usage ledger now meters Exa searches and page fetches across chat, manual watches,
   synchronous observation and asynchronous jobs. A dedicated Coolify worker claims scan jobs while
   the web scheduler is disabled, and `/health/worker` exposes persisted readiness and queue health.
+- Shared per-domain minute budgets now prevent concurrent app/worker traffic from over-fetching one
+  supplier. The admin operations console exposes live queue SLOs, paid usage, dead letters and
+  audited one-click replay.
 
 ## Known limitations
 
@@ -53,11 +56,11 @@ product for procurement teams. It is not an official consumer price index.
 5. **Indices are pilot-grade.** Current base-100 series have sparse samples and no published
    revision policy, outlier model, seasonal treatment, confidence intervals or quality tier.
 6. **Worker operations need a soak.** The dedicated Coolify worker is deployed, the web scheduler is
-   disabled, and persisted heartbeats report queue depth and failures. Stalled-lease alerts,
-   per-domain throttling, queue SLOs and seven consecutive healthy scan days still remain.
-7. **Quotas need production reconciliation.** The shared ledger and per-user daily Exa/fetch limits
-   cover all paid discovery paths. Domain/minute budgets, an operator usage view and reconciliation
-   against provider invoices/logs remain.
+   disabled, and the operations console reports stalled leases, dead letters and the oldest queued
+   job. Seven consecutive healthy scan days and proactive external alert delivery still remain.
+7. **Quotas need production reconciliation.** The shared ledger, per-user daily limits and shared
+   domain/minute budgets cover paid discovery paths. The operator usage view is implemented;
+   reconciliation against provider invoices/logs remains blocked until EXA access is restored.
 8. **API lifecycle is incomplete.** Observation-job cursor pagination is implemented, but all
    list resources need consistent cursors, webhook delivery, usage reporting and a formal
    version/deprecation policy before broad third-party use.
@@ -94,13 +97,14 @@ Acceptance criteria:
 
 ### Release B — independently operable monitoring
 
-Status: split web/worker services, worker heartbeats, shared paid-usage quotas and the dedicated
-Coolify worker are implemented. Stalled-job alerts and seven-day soak verification remain.
+Status: split web/worker services, worker heartbeats, shared paid-usage/domain quotas, queue SLO
+alerts, audited dead-letter replay and the dedicated Coolify worker are implemented. External alert
+delivery and seven-day soak verification remain.
 
-- Deploy `python -m scripts.watchlist_worker` as a separate Coolify process and turn off the web
-  worker there; add readiness/queue-depth metrics, stalled-lease alerts and a dead-letter view.
-- Reconcile the implemented shared Exa/page-fetch ledger and per-user daily limits in production,
-  then add domain/minute budgets for watch scans, sync observation and async jobs.
+- Continue the production soak for `python -m scripts.watchlist_worker`; route queue-SLO alerts to
+  an external operator channel after the delivery policy is selected.
+- Reconcile the implemented Exa/page-fetch ledger, per-user daily limits and domain/minute budgets
+  against provider execution logs after EXA access is restored.
 
 Acceptance criteria:
 

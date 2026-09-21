@@ -625,12 +625,30 @@ def _init_price_intelligence_tables():
             metadata JSONB NOT NULL DEFAULT '{{}}'::jsonb,
             created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
         )""",
+        f"""CREATE TABLE IF NOT EXISTS {SCHEMA}.source_rate_limits (
+            domain VARCHAR(255) PRIMARY KEY,
+            window_started_at TIMESTAMPTZ NOT NULL,
+            request_count INTEGER NOT NULL DEFAULT 0 CHECK (request_count >= 0),
+            updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+        )""",
+        f"""CREATE TABLE IF NOT EXISTS {SCHEMA}.operations_actions (
+            id BIGSERIAL PRIMARY KEY,
+            actor_user_id INTEGER REFERENCES {SCHEMA}.chat_users(id) ON DELETE SET NULL,
+            action VARCHAR(50) NOT NULL,
+            job_type VARCHAR(30) NOT NULL,
+            job_id UUID NOT NULL,
+            metadata JSONB NOT NULL DEFAULT '{{}}'::jsonb,
+            created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+        )""",
         f"""CREATE TABLE IF NOT EXISTS {SCHEMA}.worker_heartbeats (
             worker_id VARCHAR(160) PRIMARY KEY,
             status VARCHAR(30) NOT NULL DEFAULT 'starting',
             queue_depth INTEGER NOT NULL DEFAULT 0,
             running_jobs INTEGER NOT NULL DEFAULT 0,
             failed_24h INTEGER NOT NULL DEFAULT 0,
+            stalled_jobs INTEGER NOT NULL DEFAULT 0,
+            dead_letters INTEGER NOT NULL DEFAULT 0,
+            oldest_queue_age_seconds INTEGER NOT NULL DEFAULT 0,
             metadata JSONB NOT NULL DEFAULT '{{}}'::jsonb,
             started_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
             last_seen_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
@@ -652,12 +670,16 @@ def _init_price_intelligence_tables():
         f"CREATE INDEX IF NOT EXISTS idx_scan_run_items_run ON {SCHEMA}.scan_run_items(scan_run_id, market)",
         f"CREATE INDEX IF NOT EXISTS idx_api_keys_user ON {SCHEMA}.api_keys(user_id, revoked_at)",
         f"CREATE INDEX IF NOT EXISTS idx_usage_ledger_user_day ON {SCHEMA}.usage_ledger(user_id, operation, created_at DESC)",
+        f"CREATE INDEX IF NOT EXISTS idx_operations_actions_created ON {SCHEMA}.operations_actions(created_at DESC)",
         f"CREATE INDEX IF NOT EXISTS idx_worker_heartbeats_seen ON {SCHEMA}.worker_heartbeats(last_seen_at DESC)",
     ]
     alters = [
         f"ALTER TABLE {SCHEMA}.catalog_items ADD COLUMN IF NOT EXISTS parent_item_id BIGINT REFERENCES {SCHEMA}.catalog_items(id) ON DELETE CASCADE",
         f"ALTER TABLE {SCHEMA}.catalog_items ADD COLUMN IF NOT EXISTS catalogue_kind VARCHAR(20) NOT NULL DEFAULT 'line'",
         f"ALTER TABLE {SCHEMA}.watchlists ADD COLUMN IF NOT EXISTS item_id BIGINT REFERENCES {SCHEMA}.catalog_items(id) ON DELETE SET NULL",
+        f"ALTER TABLE {SCHEMA}.worker_heartbeats ADD COLUMN IF NOT EXISTS stalled_jobs INTEGER NOT NULL DEFAULT 0",
+        f"ALTER TABLE {SCHEMA}.worker_heartbeats ADD COLUMN IF NOT EXISTS dead_letters INTEGER NOT NULL DEFAULT 0",
+        f"ALTER TABLE {SCHEMA}.worker_heartbeats ADD COLUMN IF NOT EXISTS oldest_queue_age_seconds INTEGER NOT NULL DEFAULT 0",
     ]
     with engine.connect() as conn:
         for stmt in ddl:

@@ -13,6 +13,7 @@ from pricing.fx import to_eur
 from pricing.identifiers import classify_query
 from pricing.markets import normalize_market
 from pricing.normalization import normalize_price
+from pricing.throttling import acquire_domain_fetch
 from pricing.usage import (
     UsageQuotaExceeded, current_usage_context, enforce_usage_quota, record_usage,
 )
@@ -68,6 +69,7 @@ def search_web_prices(
     offers: list[dict] = []
     failures: list[dict] = []
     page_fetches = 0
+    throttled_fetches = 0
 
     if fetch_pages:
         for candidate in discovered:
@@ -76,6 +78,16 @@ def search_web_prices(
                 continue
             enforce_usage_quota(usage, "page_fetch")
             domain = urlparse(url).netloc
+            throttle = acquire_domain_fetch(domain)
+            if not throttle.allowed:
+                throttled_fetches += 1
+                failures.append({
+                    "url": url,
+                    "reason": "domain rate limit",
+                    "retry_after_seconds": throttle.retry_after_seconds,
+                    "limit_per_minute": throttle.limit,
+                })
+                continue
             try:
                 extracted = fetch_and_extract(url)
                 page_fetches += 1
@@ -154,5 +166,9 @@ def search_web_prices(
         "discoveries": discovered,
         "discovery_only": discovery_only,
         "extraction_failures": failures,
-        "usage": {"exa_searches": 1, "page_fetches": page_fetches},
+        "usage": {
+            "exa_searches": 1,
+            "page_fetches": page_fetches,
+            "throttled_fetches": throttled_fetches,
+        },
     }
