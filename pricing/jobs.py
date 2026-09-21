@@ -119,7 +119,8 @@ def _complete(job_id, result: dict) -> None:
 
 def _fail(job: dict, exc: Exception) -> None:
     attempt = int(job.get("attempt_count") or 1)
-    retrying = attempt < int(job.get("max_attempts") or 3)
+    from pricing.usage import UsageQuotaExceeded
+    retrying = attempt < int(job.get("max_attempts") or 3) and not isinstance(exc, UsageQuotaExceeded)
     delay = min(3600, 60 * (2 ** max(0, attempt - 1)))
     db = SessionLocal()
     try:
@@ -147,7 +148,8 @@ def work_observation_once(worker_id: str | None = None) -> dict | None:
         from pricing.service import search_web_prices
         result = search_web_prices(
             job["query"], job["market"], limit=job["result_limit"],
-            fetch_pages=job["fetch_pages"],
+            fetch_pages=job["fetch_pages"], user_id=job["user_id"],
+            usage_origin="observation-job", usage_context_id=str(job["id"]),
         )
         result["item_id"] = job.get("item_id")
         db = SessionLocal()

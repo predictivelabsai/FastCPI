@@ -29,6 +29,12 @@ def test_observation_is_write_and_persisted_search_is_get():
     assert "get" in paths["/prices/search"]
 
 
+def test_catalogue_api_default_can_return_the_full_seeded_catalogue():
+    operation = create_app().openapi()["paths"]["/items"]["get"]
+    limit = next(parameter for parameter in operation["parameters"] if parameter["name"] == "limit")
+    assert limit["schema"]["default"] >= 110
+
+
 def test_legacy_car_routes_are_not_exposed():
     paths = create_app().openapi()["paths"]
     for prefix in (

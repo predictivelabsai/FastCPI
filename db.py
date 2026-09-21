@@ -389,6 +389,9 @@ def _init_price_intelligence_tables():
         )""",
         f"""CREATE TABLE IF NOT EXISTS {SCHEMA}.catalog_items (
             id BIGSERIAL PRIMARY KEY,
+            parent_item_id BIGINT REFERENCES {SCHEMA}.catalog_items(id) ON DELETE CASCADE,
+            catalogue_kind VARCHAR(20) NOT NULL DEFAULT 'line'
+                CHECK (catalogue_kind IN ('line', 'sample_item', 'user_item')),
             item_type VARCHAR(20) NOT NULL CHECK (item_type IN ('good', 'service')),
             name TEXT NOT NULL,
             description TEXT,
@@ -609,11 +612,35 @@ def _init_price_intelligence_tables():
             revoked_at TIMESTAMPTZ,
             created_at TIMESTAMPTZ DEFAULT NOW()
         )""",
+        f"""CREATE TABLE IF NOT EXISTS {SCHEMA}.usage_ledger (
+            id BIGSERIAL PRIMARY KEY,
+            user_id INTEGER REFERENCES {SCHEMA}.chat_users(id) ON DELETE SET NULL,
+            operation VARCHAR(30) NOT NULL CHECK (operation IN ('exa_search','page_fetch')),
+            units INTEGER NOT NULL DEFAULT 1 CHECK (units > 0),
+            status VARCHAR(30) NOT NULL,
+            origin VARCHAR(40) NOT NULL,
+            context_id VARCHAR(255),
+            provider VARCHAR(80),
+            source_domain VARCHAR(255),
+            metadata JSONB NOT NULL DEFAULT '{{}}'::jsonb,
+            created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+        )""",
+        f"""CREATE TABLE IF NOT EXISTS {SCHEMA}.worker_heartbeats (
+            worker_id VARCHAR(160) PRIMARY KEY,
+            status VARCHAR(30) NOT NULL DEFAULT 'starting',
+            queue_depth INTEGER NOT NULL DEFAULT 0,
+            running_jobs INTEGER NOT NULL DEFAULT 0,
+            failed_24h INTEGER NOT NULL DEFAULT 0,
+            metadata JSONB NOT NULL DEFAULT '{{}}'::jsonb,
+            started_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+            last_seen_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+        )""",
     ]
     indexes = [
         f"CREATE INDEX IF NOT EXISTS idx_cpv_parent ON {SCHEMA}.cpv_codes(parent_code, version)",
         f"CREATE INDEX IF NOT EXISTS idx_cpv_label_en ON {SCHEMA}.cpv_codes USING GIN (to_tsvector('english', label_en))",
         f"CREATE INDEX IF NOT EXISTS idx_identifiers_value ON {SCHEMA}.item_identifiers(identifier_type, identifier_value)",
+        f"CREATE INDEX IF NOT EXISTS idx_catalog_items_parent ON {SCHEMA}.catalog_items(parent_item_id, catalogue_kind)",
         f"CREATE INDEX IF NOT EXISTS idx_offers_item_market ON {SCHEMA}.offers(item_id, market, status)",
         f"CREATE INDEX IF NOT EXISTS idx_observations_offer_date ON {SCHEMA}.price_observations(offer_id, captured_at DESC)",
         f"CREATE INDEX IF NOT EXISTS idx_indices_series_date ON {SCHEMA}.price_indices(series_key, market, period_date DESC)",
@@ -624,8 +651,12 @@ def _init_price_intelligence_tables():
         f"CREATE INDEX IF NOT EXISTS idx_scan_runs_watchlist ON {SCHEMA}.scan_runs(watchlist_id, created_at DESC)",
         f"CREATE INDEX IF NOT EXISTS idx_scan_run_items_run ON {SCHEMA}.scan_run_items(scan_run_id, market)",
         f"CREATE INDEX IF NOT EXISTS idx_api_keys_user ON {SCHEMA}.api_keys(user_id, revoked_at)",
+        f"CREATE INDEX IF NOT EXISTS idx_usage_ledger_user_day ON {SCHEMA}.usage_ledger(user_id, operation, created_at DESC)",
+        f"CREATE INDEX IF NOT EXISTS idx_worker_heartbeats_seen ON {SCHEMA}.worker_heartbeats(last_seen_at DESC)",
     ]
     alters = [
+        f"ALTER TABLE {SCHEMA}.catalog_items ADD COLUMN IF NOT EXISTS parent_item_id BIGINT REFERENCES {SCHEMA}.catalog_items(id) ON DELETE CASCADE",
+        f"ALTER TABLE {SCHEMA}.catalog_items ADD COLUMN IF NOT EXISTS catalogue_kind VARCHAR(20) NOT NULL DEFAULT 'line'",
         f"ALTER TABLE {SCHEMA}.watchlists ADD COLUMN IF NOT EXISTS item_id BIGINT REFERENCES {SCHEMA}.catalog_items(id) ON DELETE SET NULL",
     ]
     with engine.connect() as conn:

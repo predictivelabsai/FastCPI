@@ -63,7 +63,10 @@ def main() -> int:
             item_id = ensure_item(db, item)
             for market in markets:
                 try:
-                    result = search_web_prices(item["query"], market, limit=args.limit, fetch_pages=True)
+                    result = search_web_prices(
+                        item["query"], market, limit=args.limit, fetch_pages=True,
+                        usage_origin="pilot-seed",
+                    )
                     result["item_id"] = item_id
                     persist_search_result(db, result)
                     totals["runs"] += 1

@@ -18,7 +18,7 @@ from db import SCHEMA
 from pricing.identifiers import classify_query
 from pricing.markets import MARKETS
 from utils.fastcpi_i18n import (
-    app_catalog_item_name, app_market_name, app_tr, app_watch_name,
+    app_catalog_item_name, app_market_name, app_tr, app_watch_name, app_watch_query,
 )
 from utils.session import get_user_id
 
@@ -48,7 +48,7 @@ def _item_options(items: list, selected, lang: str):
     return [
         Option(app_tr("no_catalog_link", lang), value="", selected=selected is None),
         *[
-            Option(app_catalog_item_name(row.name, lang), value=str(row.id), selected=row.id == selected)
+            Option(app_catalog_item_name(row.name, lang, row.display_name_fr), value=str(row.id), selected=row.id == selected)
             for row in items
         ],
     ]
@@ -70,7 +70,7 @@ def _watch_card(row, items: list, lang: str):
         Div(
             Div(Span(app_watch_name(row.name, lang), cls="watch-card-title"),
                 Span(active_label, cls=f"watch-status {'active' if row.is_active else 'paused'}")),
-            P(row.query, cls="watch-card-query"),
+            P(app_watch_query(row.query, lang), cls="watch-card-query"),
             Div(
                 Span(f"{app_tr('markets', lang)}: {', '.join(markets)}"),
                 Span(f"{app_tr('last_run', lang)}: {_time(row.last_run_at, lang)}"),
@@ -189,7 +189,8 @@ def register_watchlist_routes(rt):
                 SELECT * FROM {SCHEMA}.watchlists WHERE user_id=:uid ORDER BY updated_at DESC
             """), {"uid": uid}).fetchall()
             items = db.execute(text(f"""
-                SELECT id,name FROM {SCHEMA}.catalog_items ORDER BY name
+                SELECT id,name,attributes->>'display_name_fr' AS display_name_fr
+                FROM {SCHEMA}.catalog_items ORDER BY name
             """)).fetchall()
         finally:
             db.close()
@@ -286,7 +287,7 @@ def register_watchlist_routes(rt):
         content = Div(
             Div(Span(status, cls=f"watch-status {'active' if watch.is_active else 'paused'}"),
                 H2(app_watch_name(watch.name, lang), cls="watch-detail-title"),
-                P(watch.query, cls="watch-card-query"),
+                P(app_watch_query(watch.query, lang), cls="watch-card-query"),
                 P(f"{app_tr('markets', lang)}: {', '.join(_markets(watch.markets))}", cls="watch-card-meta"),
                 Button(app_tr("run_now", lang), onclick=f"watchAction({watch.id},'run')",
                        disabled=not watch.is_active, cls="watch-action primary"), cls="watch-detail-hero"),

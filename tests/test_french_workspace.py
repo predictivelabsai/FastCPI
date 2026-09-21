@@ -1,5 +1,5 @@
 from agents.router import route, strip_prefix
-from utils.fastcpi_i18n import APP_COPY, app_agent_name, app_agent_prompts, app_tr
+from utils.fastcpi_i18n import APP_COPY, app_agent_name, app_agent_prompts, app_tr, app_watch_query
 
 
 def test_authenticated_workspace_copy_has_complete_french_values():
@@ -7,6 +7,7 @@ def test_authenticated_workspace_copy_has_complete_french_values():
     assert all(len(values) == 2 and values[0] and values[1] for values in APP_COPY.values())
     assert app_tr("daily_scan", "fr") == "Analyse quotidienne"
     assert app_tr("watchlists", "fr") == "Listes de suivi"
+    assert app_tr("catalogue_title", "fr") == "Catalogue des achats publics"
     assert app_tr("account_api", "fr") == "Compte et clés API"
 
 
@@ -22,3 +23,8 @@ def test_french_agents_prompts_and_routing_are_native():
 def test_interface_language_does_not_change_user_question():
     english_question = "Show observed prices for A4 paper in France"
     assert strip_prefix(english_question) == english_question
+
+
+def test_only_seeded_watch_queries_receive_french_display_copy():
+    assert app_watch_query("A4 80 gsm office copy paper", "fr") == "Papier de bureau A4 80 g/m²"
+    assert app_watch_query("my supplier-specific query", "fr") == "my supplier-specific query"

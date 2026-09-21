@@ -84,7 +84,6 @@ def main() -> int:
         "APP_SECRET": current.get("APP_SECRET") or secrets.token_urlsafe(48),
         "JWT_SECRET": current.get("JWT_SECRET") or secrets.token_urlsafe(48),
         "LOGIN": "1",
-        "INVITE_ONLY": "0",
         "CORS_ALLOWED_ORIGINS": "https://cpi.fastsme.com",
         "SERVICE_URL_FASTCPI": "https://cpi.fastsme.com",
         "EXA_API_KEY": exa_key,
@@ -105,6 +104,8 @@ def main() -> int:
         "WATCHLIST_SCANS_ENABLED": "1",
         "WATCHLIST_SCAN_INTERVAL_SECONDS": "60",
         "DAILY_OBSERVATION_JOB_QUOTA": "25",
+        "DAILY_EXA_SEARCH_QUOTA": "100",
+        "DAILY_PAGE_FETCH_QUOTA": "1000",
         "DIGEST_ENABLED": "0",
     }
     changed = [key for key, value in values.items() if current.get(key) != value]

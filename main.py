@@ -40,6 +40,13 @@ def health():
     return _JSONResponse({"status": "ok", "release": os.environ.get("RELEASE_SHA", "development")})
 
 
+@rt("/health/worker")
+def worker_health():
+    from monitoring.health import latest_worker_health
+    payload = latest_worker_health()
+    return _JSONResponse(payload, status_code=200 if payload["ready"] else 503)
+
+
 # --- Language switching ---
 
 @rt('/set-lang/{code}')
@@ -109,6 +116,9 @@ register_daily_scan_routes(rt)
 
 from chat.market_overview import register_market_overview_routes
 register_market_overview_routes(rt)
+
+from chat.catalogue import register_catalogue_routes
+register_catalogue_routes(rt)
 
 from chat.watchlists import register_watchlist_routes
 register_watchlist_routes(rt)

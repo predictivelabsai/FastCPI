@@ -41,7 +41,7 @@ def register_auth_routes(rt):
     @rt("/auth/register", methods=["POST"])
     async def auth_register(request):
         from sqlalchemy import text
-        from auth.access import invite_only_enabled, pending_invitation
+        from auth.access import pending_invitation
         form = await request.form()
         email = (form.get("email") or "").strip().lower()
         password = form.get("password") or ""
@@ -64,9 +64,6 @@ def register_auth_routes(rt):
                 return JSONResponse({"error": "An account with this email already exists"}, status_code=409)
             if existing and not existing.password_hash and not invitation:
                 return JSONResponse({"error": "This account uses Google Sign-In"}, status_code=409)
-            if invite_only_enabled() and not existing and not invitation:
-                return JSONResponse({"error": "FastCPI is invite-only. Ask an administrator for access."}, status_code=403)
-
             token = generate_token()
             pw_hash = hash_password(password)
 
@@ -752,9 +749,6 @@ async function submitNotify(e) {
             else:
                 from auth.access import consume_invitation, pending_invitation
                 invitation = pending_invitation(db, email)
-                from auth.access import invite_only_enabled
-                if invite_only_enabled() and not invitation:
-                    return RedirectResponse("/?auth_error=invite_required", status_code=303)
                 result = db.execute(text(f"""
                     INSERT INTO {SCHEMA}.chat_users (email, name, is_verified)
                     VALUES (:email, :name, TRUE)

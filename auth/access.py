@@ -1,17 +1,10 @@
-"""Invite-only access checks shared by browser and API authentication."""
+"""Optional invitation records retained for attribution and onboarding."""
 
 from __future__ import annotations
-
-import os
 
 from sqlalchemy import text
 
 from db import SCHEMA
-
-
-def invite_only_enabled() -> bool:
-    """Return whether deployments explicitly opted back into invite-only access."""
-    return os.environ.get("INVITE_ONLY", "0").strip().lower() in {"1", "true", "yes", "on"}
 
 
 def pending_invitation(db, email: str):

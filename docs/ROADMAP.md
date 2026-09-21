@@ -1,14 +1,19 @@
 # FastCPI delivery roadmap
 
-Updated 2026-09-09. FastCPI is a source-backed web-market observation and price-intelligence
+Updated 2026-09-21. FastCPI is a source-backed web-market observation and price-intelligence
 product for procurement teams. It is not an official consumer price index.
 
 ## Current implementation
 
 - Ten EU markets, CPV Version 2008 search/descendant expansion, text/SKU/MPN/GTIN identity
   classification, Exa discovery, public-page fetching, evidence persistence and scoped API keys.
-- Three pilot catalogue items and starter daily watches: A4 office paper in France, HP W2210A
-  toner in Germany and hourly IT support in Estonia.
+- Three starter daily watches remain: A4 office paper in France, HP W2210A toner in Germany and
+  hourly IT support in Estonia.
+- The catalogue now has 110 researched local-government procurement lines across ten sectors and
+  100 concrete products beneath ten web-price-ready lines. The concrete layer has ten products per
+  line, searchable manufacturer identifiers, English/French names and official identity sources.
+  A controlled 20-item cohort (two per sampled line) is prepopulated but paused until EXA access is
+  restored.
 - Generic JSON-LD, microdata, Open Graph and visible hourly-rate extraction, plus one
   recurring-domain adapter. URL/redirect SSRF controls and robots policy checks are enforced.
 - Source-backed observations, discovery-only candidates, daily scan events, alert email support,
@@ -23,6 +28,13 @@ product for procurement teams. It is not an official consumer price index.
 - The third-party surface includes cursor-paged, quota-controlled asynchronous observation jobs
   and an authenticated read-only MCP Streamable HTTP alpha at `/mcp/` with six tools and a
   methodology resource.
+- A versioned comparable-offer policy is implemented locally and awaiting deployment. It exposes
+  ranking eligibility, machine-readable exclusion reasons and commercial-term caveats through the
+  market dashboard, REST API and MCP output; excluded evidence remains visible but cannot influence
+  supplier statistics.
+- A shared paid-usage ledger now meters Exa searches and page fetches across chat, manual watches,
+  synchronous observation and asynchronous jobs. The standalone worker topology exposes a
+  readiness/queue-health endpoint; deployment as a separate Coolify process remains outstanding.
 
 ## Known limitations
 
@@ -32,19 +44,21 @@ product for procurement teams. It is not an official consumer price index.
 2. **Parser depth is shallow.** Structured metadata works well when present, but only one
    domain-specific adapter exists. Supplier address/entity, pack size, MOQ, delivery zone,
    contract duration and price-break extraction are incomplete.
-3. **Comparability needs stronger gates.** Currency conversion exists, but VAT, shipping,
-   quantity, service scope, product variant and effective-date differences can still prevent
-   defensible ranking. Product equivalence is not yet a canonical graph.
+3. **Comparability evidence remains incomplete.** The first versioned ranking gate now covers
+   confidence, normalised units, known identifier conflicts and market conflicts, while retaining
+   VAT, delivery, identity and supplier caveats. Pack quantity, MOQ, service scope, product variant,
+   effective dates and a canonical product-equivalence graph still need structured evidence.
 4. **Geographic confidence is limited.** Market selection and source locality need supplier
    address, delivery-country and domain evidence rather than query intent or ccTLD alone.
 5. **Indices are pilot-grade.** Current base-100 series have sparse samples and no published
    revision policy, outlier model, seasonal treatment, confidence intervals or quality tier.
-6. **Worker separation is not deployed.** Jobs are durable and lease-safe, and a standalone
-   worker entry point exists, but the current deployment also runs a worker thread in the web
-   process. A dedicated Coolify worker, per-domain concurrency/throttling and queue SLOs remain.
-7. **Quota coverage is partial.** Async observation jobs have per-user daily quotas and rate-limit
-   headers. Manual watch scans, the legacy synchronous observe route and source-level Exa/fetch
-   budgets still need one shared usage ledger.
+6. **Worker separation is not deployed.** The repository has distinct web/worker services, disables
+   scan execution in the web container and records worker heartbeats, queue depth and failures. A
+   dedicated Coolify worker, stalled-lease alerts, per-domain throttling and queue SLOs still need
+   production configuration and a seven-day soak.
+7. **Quotas need production reconciliation.** The shared ledger and per-user daily Exa/fetch limits
+   cover all paid discovery paths. Domain/minute budgets, an operator usage view and reconciliation
+   against provider invoices/logs remain.
 8. **API lifecycle is incomplete.** Observation-job cursor pagination is implemented, but all
    list resources need consistent cursors, webhook delivery, usage reporting and a formal
    version/deprecation policy before broad third-party use.
@@ -58,39 +72,79 @@ product for procurement teams. It is not an official consumer price index.
     the official SDK and requires a scoped FastCPI API key as a bearer token. OAuth authorization,
     consent, dynamic client registration and registry publication are not yet implemented.
 
-## Next slice — defensible comparable offers and production workers
+## Delivery plan beyond the pilot
 
-Target: make daily monitoring independently operable and make supplier ranking defensible enough
-for a procurement analyst to export and review.
+The previous next slice combined data quality, infrastructure, metering, integrations and source
+coverage. It is now split into independently testable releases.
+
+### Release A — comparable-offer contract
+
+Status: first increment implemented locally; production deployment and evidence-field expansion remain.
+
+- Apply `offer-comparability-v1` to country and EU statistics, with excluded observations visible
+  below the ranking and machine-readable reasons in REST and MCP results.
+- Extend the evidence model with normalized pack quantity, VAT, shipping, MOQ, delivery country,
+  service period and supplier entity. Preserve raw evidence alongside every normalized field.
+- Add analyst CSV/XLSX evidence export after the required format is confirmed.
+
+Acceptance criteria:
+
+- Every ranked offer passes documented identity, unit, confidence and geographic checks.
+- Every excluded offer remains source-linked and has a machine-readable reason visible in API and UI.
+- Commercial caveats are explicit and never silently converted into known terms.
+
+### Release B — independently operable monitoring
+
+Status: repository implementation complete for split web/worker services, worker heartbeats and
+shared paid-usage quotas; Coolify worker deployment, alerts and soak verification remain.
 
 - Deploy `python -m scripts.watchlist_worker` as a separate Coolify process and turn off the web
   worker there; add readiness/queue-depth metrics, stalled-lease alerts and a dead-letter view.
-- Add one shared usage ledger for Exa searches and fetched pages, then enforce user/day and
-  domain/minute budgets for watch scans, sync observation and async jobs.
-- Run the three starter scans against current public sources, rank recurring domains and build
-  fixtures/adapters for the strongest France-paper, Germany-toner and Estonia-IT sources.
-- Extend the evidence model with normalized pack quantity, VAT, shipping, MOQ, delivery country,
-  service period and supplier entity. Preserve raw evidence alongside every normalized field.
-- Introduce comparable-offer eligibility and explicit exclusion reasons. Default variance charts
-  use eligible offers; incompatible offers remain visible below the ranking.
+- Reconcile the implemented shared Exa/page-fetch ledger and per-user daily limits in production,
+  then add domain/minute budgets for watch scans, sync observation and async jobs.
+
+Acceptance criteria:
+
+- All three starter scans complete in the dedicated worker on schedule for seven consecutive days.
+- Retries never create duplicate runs or observations and a worker restart loses no job.
+- Quotas cover every paid discovery path and totals reconcile to Exa and fetch execution logs.
+
+### Release C — evidence-driven source coverage
+
+Status: 100 concrete samples, the paused 20-item cohort, recurring-domain report and maintained
+starter-source fixtures are implemented locally. Live cohort activation is blocked by EXA HTTP 402.
+
+- Continue ranking recurring domains from live usage and add adapters when fixtures reveal a real
+  gap; generic JSON-LD/microdata already parses the strongest observed starter sources.
+- Activate and measure the selected 20-item cohort after EXA billing is restored; do not enqueue all
+  100 products or all 110 procurement lines by default.
+
+Acceptance criteria:
+
+- Each starter category has maintained extraction fixtures for its strongest recurring sources.
+- Parser drift produces an operational alert before silently degrading market coverage.
+
+### Release D — third-party delivery and LLM discovery
+
 - Add signed webhook subscriptions for job/scan completion and threshold events, with an outbox,
   retries, replay protection and delivery history.
 - Publish an MCP client example and `llms.txt`, run MCP Inspector/conformance in CI, and implement
   OAuth protected-resource/authorization metadata before registry submission.
-- Expand evals with parser fixtures, tenant-crossing attempts, queue restart recovery, quota
-  exhaustion, French/English question-language behavior and clickable provenance.
 
 Acceptance criteria:
 
-- All three starter scans complete in the dedicated worker on schedule for seven consecutive
-  days; retries never create duplicate runs/observations and a worker restart loses no job.
-- Every displayed price has a clickable HTTP(S) source, capture time, original price/currency,
-  comparable basis, extraction method, confidence and warnings.
-- Every ranked offer passes documented identity/unit/commercial-term gates; every exclusion has
-  a machine-readable reason visible in the API and UI.
-- Quotas cover every paid discovery path and usage totals reconcile to Exa/fetch execution logs.
-- No result is called the cheapest/best in a market unless the copy says “lowest observed
-  comparable price” and states sample coverage.
+- Webhook retries are idempotent, signed and inspectable by the owning tenant.
+- MCP clients can discover authentication metadata, run conformance tests and reproduce a documented
+  catalogue-to-price-variance workflow.
+
+### Cross-release quality work
+
+- Expand evals with parser fixtures, tenant-crossing attempts, queue restart recovery, quota
+  exhaustion, French/English question-language behavior and clickable provenance.
+- Require every displayed price to include a clickable HTTP(S) source, capture time, original
+  price/currency, comparable basis, extraction method, confidence and warnings.
+- Never call a result cheapest or best in a market unless the copy says “lowest observed comparable
+  price” and states sample coverage.
 
 ## MCP server status and plan
 

@@ -3,6 +3,7 @@
 from fasthtml.common import fast_app
 
 from auth.routes import register_auth_routes
+from chat.catalogue import register_catalogue_routes
 from chat.watchlists import register_watchlist_routes
 
 
@@ -21,3 +22,9 @@ def test_watch_creation_does_not_collide_with_dynamic_detail_route():
     routes = _routes(register_watchlist_routes)
     assert ("/app/watchlist-create", {"POST"}) in routes
     assert not any(path == "/app/watchlists/create" for path, _ in routes)
+
+
+def test_catalogue_has_a_dedicated_authenticated_workspace_route():
+    methods = next(methods for path, methods in _routes(register_catalogue_routes) if path == "/app/catalogue")
+    assert "GET" in methods
+    assert "POST" not in methods

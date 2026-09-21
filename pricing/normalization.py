@@ -10,6 +10,9 @@ UNIT_ALIASES = {
     "kg": "kg", "kilogram": "kg", "kilograms": "kg", "g": "g",
     "l": "l", "litre": "l", "liter": "l", "ml": "ml",
     "hour": "hour", "hr": "hour", "h": "hour", "day": "day", "month": "month", "year": "year",
+    "m": "m", "metre": "m", "meter": "m", "km": "km", "m2": "m2", "sqm": "m2",
+    "m3": "m3", "cbm": "m3", "tonne": "tonne", "tonnes": "tonne", "t": "tonne",
+    "kwh": "kwh", "meal": "meal", "trip": "trip", "set": "set", "licence": "licence",
 }
 
 

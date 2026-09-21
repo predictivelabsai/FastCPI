@@ -81,7 +81,11 @@ def scan_watchlist(watchlist_id: int, *, scan_run_id=None) -> dict:
                 """), {"run": scan_run_id, "market": market})
                 db.commit()
             try:
-                result = search_web_prices(watch.query, market, limit=10, fetch_pages=True)
+                result = search_web_prices(
+                    watch.query, market, limit=10, fetch_pages=True,
+                    user_id=watch.user_id, usage_origin="watchlist-scan",
+                    usage_context_id=str(scan_run_id or watchlist_id),
+                )
                 result["watchlist_id"] = watchlist_id
                 result["item_id"] = watch.item_id
                 result = persist_search_result(db, result, user_id=watch.user_id)

@@ -8,6 +8,7 @@ terms, and tracks observed asking-price movements. It is not an official consume
 
 - `/` — public FastSME-style landing page
 - `/app` — three-pane streaming price-intelligence chat
+- `/app/catalogue` — searchable two-level municipal catalogue with product identifiers and sources
 - `/app/market-overview` — item-first Plotly supplier-variance dashboard, country view by default
 - `/app/watchlists` — user-specific daily price monitors
 - `/app/daily-scan` — latest watchlist movements
@@ -21,6 +22,12 @@ terms, and tracks observed asking-price movements. It is not an official consume
 Initial markets are Germany, Denmark, Estonia, Finland, France, Lithuania, Latvia, the
 Netherlands, Poland and Sweden. Queries may use plain language, CPV Version 2008 codes, SKUs,
 MPNs or GTINs.
+
+The municipal catalogue contains 110 CPV-validated procurement lines across ten local-government
+sectors plus 100 concrete products sampled from ten public-price-ready lines. The recommended
+daily cohort contains 20 products (two per line). See
+[the catalogue research note](docs/CATALOGUE_RESEARCH_2026-09-21.md) for the official sources, TED
+sampling method, sector frequencies, product-sample design and coverage limits.
 
 Signup is open through Google or verified email. The language selector remains available in the
 authenticated workspace. The French workspace is fully localised; agent answers follow the
@@ -51,9 +58,11 @@ credentials and verify routing, source provenance, coverage language and global-
 guardrails.
 
 Watchlist scans use durable PostgreSQL jobs with leases, bounded retries and per-market outcomes.
-The web process can execute them in-process, while `python -m scripts.watchlist_worker` is the
-standalone worker entry point. Threshold events include the best observed source URL; when email
-is enabled, one Postmark alert is sent for that scan and the event is marked notified.
+The Compose topology disables scan execution in the web container and runs
+`python -m scripts.watchlist_worker` separately. `/health/worker` reports the latest persisted
+heartbeat and queue state. A shared ledger applies daily user limits to Exa searches and public-page
+fetches across every paid discovery path. Threshold events include the best observed source URL;
+when email is enabled, one Postmark alert is sent for that scan and the event is marked notified.
 
 ## Evidence contract
 

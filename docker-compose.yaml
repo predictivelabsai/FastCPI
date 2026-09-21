@@ -24,14 +24,15 @@ services:
       - FROM_NAME=${FROM_NAME}
       - TO_EMAIL=${TO_EMAIL}
       - LOGIN=${LOGIN}
-      - INVITE_ONLY=${INVITE_ONLY:-0}
       - JWT_SECRET=${JWT_SECRET}
       - CORS_ALLOWED_ORIGINS=${CORS_ALLOWED_ORIGINS:-https://cpi.fastsme.com}
       - ADMIN_EMAIL=${ADMIN_EMAIL}
       - ADMIN_PASSWORD=${ADMIN_PASSWORD}
-      - WATCHLIST_SCANS_ENABLED=${WATCHLIST_SCANS_ENABLED:-1}
+      - WATCHLIST_SCANS_ENABLED=0
       - WATCHLIST_SCAN_INTERVAL_SECONDS=${WATCHLIST_SCAN_INTERVAL_SECONDS:-60}
       - DAILY_OBSERVATION_JOB_QUOTA=${DAILY_OBSERVATION_JOB_QUOTA:-25}
+      - DAILY_EXA_SEARCH_QUOTA=${DAILY_EXA_SEARCH_QUOTA:-100}
+      - DAILY_PAGE_FETCH_QUOTA=${DAILY_PAGE_FETCH_QUOTA:-1000}
       - PORT=${PORT}
     labels:
       - coolify.managed=true
@@ -42,4 +43,20 @@ services:
       timeout: 10s
       retries: 3
       start_period: 20s
+    restart: unless-stopped
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: ["python", "-m", "scripts.watchlist_worker"]
+    environment:
+      - DB_URL=${DB_URL}
+      - DB_SCHEMA=${DB_SCHEMA:-fastcpi}
+      - EXA_API_KEY=${EXA_API_KEY}
+      - POSTMARK_API_TOKEN=${POSTMARK_API_TOKEN}
+      - FROM_EMAIL=${FROM_EMAIL}
+      - FROM_NAME=${FROM_NAME}
+      - DAILY_EXA_SEARCH_QUOTA=${DAILY_EXA_SEARCH_QUOTA:-100}
+      - DAILY_PAGE_FETCH_QUOTA=${DAILY_PAGE_FETCH_QUOTA:-1000}
+      - WATCHLIST_SCAN_INTERVAL_SECONDS=${WATCHLIST_SCAN_INTERVAL_SECONDS:-60}
     restart: unless-stopped

@@ -226,3 +226,9 @@ __marimo__/
 # CarHero runtime data
 data/
 .playwright-mcp/
+
+# Versioned FastCPI seed catalogue; keep other runtime data ignored.
+!data/
+data/*
+!data/municipal_catalog.tsv
+!data/product_samples.tsv

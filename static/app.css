@@ -999,6 +999,7 @@
 .variance-section-copy { margin-bottom: 10px; color: var(--ink-muted); font-size: 11px; }
 .variance-source-list { display: grid; gap: 9px; }
 .variance-source-card { padding: 14px; border: 1px solid #e0e8e4; border-radius: 10px; background: #fff; }
+.variance-source-card.excluded { border-style: dashed; background: #fcfbf8; }
 .source-card-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 18px; }
 .source-card-head > div:first-child { min-width: 0; }
 .source-card-head > div:last-child { flex-shrink: 0; text-align: right; }
@@ -1008,7 +1009,11 @@
 .source-card-original { margin-top: 2px; color: #8a9690; font-size: 9px; }
 .source-card-meta-row { display: flex; flex-wrap: wrap; align-items: center; gap: 5px; margin-top: 10px; }
 .source-pill { padding: 3px 6px; border-radius: 999px; background: #edf3f0; color: #4f6159; font-size: 9px; font-weight: 600; }
+.source-pill.comparability-eligible { background: #e3f4ed; color: #0d6a52; }
+.source-pill.comparability-eligible_with_caveats { background: #fff4d6; color: #865d0c; }
+.source-pill.comparability-excluded { background: #f8e8e5; color: #9a3e31; }
 .source-card-meta { margin-left: auto; color: #8a9690; font-size: 9px; }
+.source-card-comparability { margin-top: 8px; color: #6c5a2d; font-size: 10px; line-height: 1.45; }
 .source-card-warning { margin-top: 8px; color: #9a6518; font-size: 10px; }
 .source-card-link { display: inline-block; margin-top: 9px; color: #08785d; font-size: 11px; font-weight: 600; text-decoration: none; }
 .source-card-link:hover { text-decoration: underline; }
@@ -1105,10 +1110,30 @@
 .watch-evidence-title { margin-top: 5px; color: #52615b; font-size: 11px; }
 .watch-evidence-meta { margin-top: 5px; }
 
+.catalogue-workspace { max-width: 1180px; margin: 0 auto; padding: 1.25rem 1.5rem 3rem; }
+.catalogue-controls { display: grid; grid-template-columns: minmax(240px, 1fr) minmax(190px, .45fr) auto auto; gap: .65rem; align-items: center; padding: .85rem; border: 1px solid #dbe6e1; border-radius: 14px; background: #f7faf8; }
+.catalogue-search-input, .catalogue-sector-select { width: 100%; min-height: 42px; padding: .65rem .8rem; border: 1px solid #cfdcd6; border-radius: 9px; background: white; }
+.catalogue-search-button { min-height: 42px; padding: 0 1rem; border: 0; border-radius: 9px; background: #111714; color: white; font-weight: 650; cursor: pointer; }
+.catalogue-clear-link { color: #476158; font-size: .82rem; text-decoration: none; }
+.catalogue-results-title { margin: 1.4rem 0 .75rem; font-size: 1rem; }
+.catalogue-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: .85rem; }
+.catalogue-line-card, .catalogue-sample-card { position: relative; display: flex; min-height: 190px; flex-direction: column; gap: .65rem; padding: 1rem; border: 1px solid #dbe4e0; border-radius: 13px; background: white; }
+.catalogue-card-meta, .catalogue-card-footer { display: flex; align-items: center; justify-content: space-between; gap: .6rem; }
+.catalogue-cpv, .catalogue-sector, .catalogue-count, .catalogue-identifier { color: #60736b; font-size: .75rem; }
+.catalogue-cpv { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; color: #087f5b; }
+.catalogue-card-title { margin: 0; font-size: 1rem; line-height: 1.35; }
+.catalogue-card-description { color: #60736b; font-size: .82rem; line-height: 1.4; }
+.catalogue-card-footer { margin-top: auto; }
+.catalogue-cohort { padding: .2rem .45rem; border-radius: 999px; background: #dcfce7; color: #087f5b; font-size: .68rem; font-weight: 700; text-transform: uppercase; }
+.catalogue-card-link { color: #087f5b; font-size: .82rem; font-weight: 650; text-decoration: none; }
+.catalogue-empty { padding: 2rem; border: 1px dashed #cbd8d2; border-radius: 12px; color: #60736b; text-align: center; }
+
 @media (max-width: 640px) {
   .watch-create-form, .watch-edit-form { grid-template-columns: 1fr; }
   .watch-create-input.wide, .watch-edit-field.wide { grid-column: auto; }
   .scan-run-head, .watch-evidence-head { align-items: flex-start; }
+  .catalogue-workspace { padding: 1rem .75rem 2rem; }
+  .catalogue-controls, .catalogue-grid { grid-template-columns: 1fr; }
 }
 @media (max-width: 768px) {
   .chat-chart { margin-left: 12px; margin-right: 12px; }

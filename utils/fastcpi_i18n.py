@@ -27,9 +27,22 @@ APP_COPY = {
     "workspace": ("Workspace", "Espace de travail"),
     "daily_scan": ("Daily Scan", "Analyse quotidienne"),
     "market_overview": ("Market Overview", "Vue du marché"),
+    "catalogue": ("Catalogue", "Catalogue"),
     "watchlists": ("Watchlists", "Listes de suivi"),
     "developers_api": ("Developers & API", "Développeurs et API"),
     "account_api": ("Account & API Keys", "Compte et clés API"),
+    "catalogue_title": ("Procurement catalogue", "Catalogue des achats publics"),
+    "catalogue_intro": ("Browse 110 procurement lines and 100 concrete product samples selected for public price monitoring.", "Parcourez 110 lignes d’achat et 100 produits concrets sélectionnés pour le suivi des prix publics."),
+    "catalogue_search": ("Search name, CPV, SKU or model", "Rechercher un nom, CPV, SKU ou modèle"),
+    "all_sectors": ("All sectors", "Tous les secteurs"),
+    "catalogue_lines": ("Catalogue lines", "Lignes du catalogue"),
+    "sample_items": ("sample items", "produits exemples"),
+    "monitored_cohort": ("Daily cohort", "Cohorte quotidienne"),
+    "view_samples": ("View samples", "Voir les produits"),
+    "manufacturer_source": ("Manufacturer source", "Source du fabricant"),
+    "view_market": ("Open market view", "Ouvrir la vue du marché"),
+    "no_catalogue_matches": ("No catalogue matches these filters.", "Aucun article du catalogue ne correspond à ces filtres."),
+    "clear_filters": ("Clear filters", "Effacer les filtres"),
     "price_intelligence": ("Price Intelligence", "Intelligence des prix"),
     "back_to_chat": ("Back to chat", "Retour au chat"),
     "results": ("Results", "Résultats"),
@@ -133,7 +146,7 @@ APP_COPY = {
     "across_eu": ("Across the EU", "Dans l’Union européenne"),
     "primary_review": ("Primary review", "Analyse principale"),
     "secondary_review": ("Secondary review", "Analyse secondaire"),
-    "country_review_intro": ("Each point is the latest comparable observation for a distinct public offer in this country.", "Chaque point correspond à la dernière observation comparable d’une offre publique distincte dans ce pays."),
+    "country_review_intro": ("Each ranked point is the latest eligible observation for a distinct public offer in this country.", "Chaque point classé correspond à la dernière observation admissible d’une offre publique distincte dans ce pays."),
     "eu_review_intro": ("Country medians and observed ranges provide context after the within-country supplier review.", "Les médianes nationales et les fourchettes observées apportent un contexte après l’analyse des fournisseurs dans un même pays."),
     "current_supplier_prices": ("Current supplier prices", "Prix actuels des fournisseurs"),
     "comparable_price_eur": ("Comparable price (EUR)", "Prix comparable (EUR)"),
@@ -145,11 +158,14 @@ APP_COPY = {
     "observed_spread": ("Observed spread", "Écart observé"),
     "range": ("Range", "Fourchette"),
     "supplier_source_evidence": ("Supplier and source evidence", "Preuves des fournisseurs et des sources"),
-    "latest_snapshot_note": ("Only the latest comparable observation for each offer is used. Open any source to verify the public evidence.", "Seule la dernière observation comparable de chaque offre est utilisée. Ouvrez une source pour vérifier la preuve publique."),
+    "latest_snapshot_note": ("Only the latest eligible observation for each offer influences the ranking. Open any source to verify the public evidence and caveats.", "Seule la dernière observation admissible de chaque offre influence le classement. Ouvrez chaque source pour vérifier la preuve publique et ses réserves."),
     "multiple_source_note": ("This country view compares multiple public sources. It remains an observed sample, not complete market coverage.", "Cette vue nationale compare plusieurs sources publiques. Il s’agit toujours d’un échantillon observé, et non d’une couverture complète du marché."),
     "single_source_warning": ("Only one source is currently observed in this country, so a meaningful supplier variance is not yet available.", "Une seule source est actuellement observée dans ce pays ; l’écart entre fournisseurs n’est donc pas encore significatif."),
     "no_prices_country": ("No comparable prices observed for this item in the selected country.", "Aucun prix comparable observé pour cet article dans le pays sélectionné."),
     "no_prices_country_detail": ("Choose another country or open the EU review to see current coverage.", "Choisissez un autre pays ou ouvrez l’analyse européenne pour consulter la couverture actuelle."),
+    "no_eligible_prices_country": ("No observed offer currently passes the ranking rules in this country.", "Aucune offre observée ne respecte actuellement les règles de classement dans ce pays."),
+    "no_eligible_prices_country_detail": ("Excluded evidence remains available below with a machine-readable reason.", "Les preuves exclues restent disponibles ci-dessous avec un motif lisible par machine."),
+    "no_eligible_prices_eu": ("No observed offer currently passes the EU ranking rules.", "Aucune offre observée ne respecte actuellement les règles de classement dans l’Union européenne."),
     "no_item_observations": ("No comparable observations are available for this item yet.", "Aucune observation comparable n’est encore disponible pour cet article."),
     "no_catalog_items": ("No catalogue items are available yet.", "Aucun article du catalogue n’est encore disponible."),
     "eu_price_ranges": ("EU country medians and observed ranges", "Médianes nationales et fourchettes observées dans l’UE"),
@@ -159,6 +175,25 @@ APP_COPY = {
     "source": ("source", "source"),
     "sources": ("sources", "sources"),
     "original_price": ("Original price", "Prix d’origine"),
+    "excluded_offers": ("Excluded offers", "Offres exclues"),
+    "excluded_from_ranking": ("Excluded from ranking", "Exclues du classement"),
+    "excluded_evidence_intro": ("These observations remain auditable but do not influence the lowest price, median or spread.", "Ces observations restent vérifiables, mais n’influencent ni le prix le plus bas, ni la médiane, ni l’écart."),
+    "comparability_status_eligible": ("Eligible", "Admissible"),
+    "comparability_status_eligible_with_caveats": ("Eligible with caveats", "Admissible avec réserves"),
+    "comparability_status_excluded": ("Excluded", "Exclue"),
+    "comparability_missing_comparable_price": ("No normalised comparable price", "Aucun prix comparable normalisé"),
+    "comparability_non_eur_comparable_currency": ("Comparable currency is not EUR", "La devise comparable n’est pas l’euro"),
+    "comparability_non_positive_comparable_price": ("Comparable price is not positive", "Le prix comparable n’est pas positif"),
+    "comparability_unit_not_normalized": ("Source unit could not be normalised", "L’unité source n’a pas pu être normalisée"),
+    "comparability_unit_mismatch": ("Unit is incompatible with the catalogue item", "L’unité est incompatible avec l’article du catalogue"),
+    "comparability_low_extraction_confidence": ("Extraction confidence is below the ranking threshold", "La confiance d’extraction est inférieure au seuil de classement"),
+    "comparability_market_conflict": ("Source geography conflicts with the selected market", "La géographie de la source est incompatible avec le marché sélectionné"),
+    "comparability_identifier_mismatch": ("Product identifier conflicts with the catalogue item", "L’identifiant du produit est incompatible avec l’article du catalogue"),
+    "comparability_vat_status_unknown": ("VAT treatment is not confirmed", "Le traitement de la TVA n’est pas confirmé"),
+    "comparability_delivery_not_confirmed": ("Delivery cost inclusion is not confirmed", "L’inclusion des frais de livraison n’est pas confirmée"),
+    "comparability_market_delivery_unverified": ("Delivery to this market is not independently verified", "La livraison vers ce marché n’est pas vérifiée indépendamment"),
+    "comparability_identity_not_verified": ("Catalogue identifier was not found in the source evidence", "L’identifiant du catalogue n’a pas été trouvé dans la preuve source"),
+    "comparability_supplier_entity_unresolved": ("Legal supplier entity is not resolved", "L’entité juridique du fournisseur n’est pas identifiée"),
     "coverage": ("Market coverage", "Couverture du marché"),
     "index": ("Observed price index", "Indice de prix observé"),
     "distribution": ("Price distribution", "Distribution des prix"),
@@ -219,10 +254,29 @@ MARKET_NAMES_FR = {
     "PL": "Pologne", "SE": "Suède",
 }
 
+SECTOR_NAMES_FR = {
+    "construction": "Construction et infrastructures",
+    "education_catering": "Éducation et restauration",
+    "facilities": "Exploitation des bâtiments",
+    "fleet_transport": "Flotte et transport",
+    "health_safety_social": "Santé, sécurité et action sociale",
+    "it_digital": "Informatique et numérique",
+    "office_admin": "Bureau et administration",
+    "parks_public_realm": "Parcs et espace public",
+    "utilities_energy": "Services publics et énergie",
+    "waste_environment": "Déchets et environnement",
+}
+
 STARTER_NAMES_FR = {
     "A4 copy paper · France": "Papier A4 · France",
     "HP W2210A toner · Germany": "Toner HP W2210A · Allemagne",
     "Hourly IT support · Estonia": "Support informatique horaire · Estonie",
+}
+
+STARTER_QUERIES_FR = {
+    "A4 80 gsm office copy paper": "Papier de bureau A4 80 g/m²",
+    "SKU: W2210A HP toner": "SKU : toner HP W2210A",
+    "CPV 72611000 hourly technical computer support": "CPV 72611000 support informatique technique horaire",
 }
 
 CATALOG_NAMES_FR = {
@@ -248,8 +302,8 @@ def app_tr(key: str, lang: str = "en") -> str:
     return values[1] if lang == "fr" else values[0]
 
 
-def app_catalog_item_name(name: str, lang: str = "en") -> str:
-    return CATALOG_NAMES_FR.get(name, name) if lang == "fr" else name
+def app_catalog_item_name(name: str, lang: str = "en", french_name: str | None = None) -> str:
+    return (french_name or CATALOG_NAMES_FR.get(name, name)) if lang == "fr" else name
 
 
 def app_agent_name(slug: str, fallback: str, lang: str = "en") -> str:
@@ -270,8 +324,17 @@ def app_market_name(code: str, fallback: str, lang: str = "en") -> str:
     return MARKET_NAMES_FR.get(code, fallback) if lang == "fr" else fallback
 
 
+def app_sector_name(code: str, fallback: str, lang: str = "en") -> str:
+    return SECTOR_NAMES_FR.get(code, fallback) if lang == "fr" else fallback
+
+
 def app_watch_name(name: str, lang: str = "en") -> str:
     return STARTER_NAMES_FR.get(name, name) if lang == "fr" else name
+
+
+def app_watch_query(query: str, lang: str = "en") -> str:
+    """Localise system-seeded queries while leaving user-authored search text untouched."""
+    return STARTER_QUERIES_FR.get(query, query) if lang == "fr" else query
 
 
 def app_js_translations(lang: str = "en") -> dict[str, str]:

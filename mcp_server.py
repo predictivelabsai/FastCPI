@@ -109,10 +109,13 @@ mcp = MCPServer(
     mime_type="application/json",
 )
 def methodology() -> str:
+    from pricing.comparability import POLICY_VERSION
     return json.dumps({
         "product": "FastCPI web market observation index and price intelligence",
         "not_official_cpi": True,
-        "snapshot": "latest comparable observation per active public offer",
+        "snapshot": "latest observed price per active public offer",
+        "ranking_policy": POLICY_VERSION,
+        "ranking": "only offers passing the comparability policy influence price statistics",
         "default_comparison": "supplier variance for one item within one country",
         "secondary_comparison": "cross-EU market context",
         "provenance": "offer results include the public source URL and capture time",
@@ -129,15 +132,21 @@ def search_catalog(query: str = "", limit: int = 20) -> dict[str, Any]:
     db = SessionLocal()
     try:
         rows = db.execute(text(f"""
-            SELECT ci.id,ci.item_type,ci.name,ci.description,ci.cpv_code,ci.canonical_unit,
+            SELECT ci.id,ci.parent_item_id,ci.catalogue_kind,ci.item_type,ci.name,ci.description,
+                   ci.cpv_code,ci.canonical_unit,parent.name AS catalogue_line,
+                   ci.attributes->>'display_name_fr' AS display_name_fr,
+                   ci.attributes->>'brand' AS brand,ci.attributes->>'model' AS model,
+                   ci.attributes->>'source_url' AS catalogue_source_url,
                    COALESCE(jsonb_agg(DISTINCT jsonb_build_object(
                      'type',ii.identifier_type,'value',ii.identifier_value,'issuer',ii.issuer
                    )) FILTER (WHERE ii.id IS NOT NULL),'[]'::jsonb) AS identifiers
             FROM {SCHEMA}.catalog_items ci
+            LEFT JOIN {SCHEMA}.catalog_items parent ON parent.id=ci.parent_item_id
             LEFT JOIN {SCHEMA}.item_identifiers ii ON ii.item_id=ci.id
             WHERE (:q='' OR ci.name ILIKE :pattern OR ci.description ILIKE :pattern
-                   OR ci.cpv_code=:digits OR ii.identifier_value ILIKE :pattern)
-            GROUP BY ci.id
+                   OR ci.cpv_code=:digits OR ii.identifier_value ILIKE :pattern
+                   OR COALESCE(ci.attributes->>'display_name_fr','') ILIKE :pattern)
+            GROUP BY ci.id,parent.name
             ORDER BY CASE WHEN ci.name ILIKE :starts THEN 0 ELSE 1 END,ci.updated_at DESC
             LIMIT :limit
         """), {
@@ -170,7 +179,8 @@ def search_cpv(query: str, language: str = "en", limit: int = 50) -> dict[str, A
 def price_variance(item_id: int, market: str = "FR") -> dict[str, Any]:
     """Compare latest supplier prices for one item within a country; include secondary EU context."""
     _user_id()
-    from pricing.analytics import get_catalog_item, latest_item_offers, summarize_markets, summarize_offers
+    from pricing.analytics import eligible_offers, get_catalog_item, latest_item_offers, summarize_markets, summarize_offers
+    from pricing.comparability import POLICY_VERSION
     from pricing.markets import normalize_market
     selected_market = normalize_market(market)
     db = SessionLocal()
@@ -180,13 +190,18 @@ def price_variance(item_id: int, market: str = "FR") -> dict[str, Any]:
             raise ValueError("Catalogue item not found")
         offers = latest_item_offers(db, item_id)
         country_offers = [offer for offer in offers if offer["market"] == selected_market]
+        country_ranked_offers = eligible_offers(country_offers)
+        country_excluded_offers = [offer for offer in country_offers if offer not in country_ranked_offers]
         return _json_ready({
             "item": item,
             "market": selected_market,
             "country_summary": summarize_offers(country_offers),
             "country_offers": country_offers,
+            "country_ranked_offers": country_ranked_offers,
+            "country_excluded_offers": country_excluded_offers,
             "eu_summary": summarize_offers(offers),
             "eu_markets": summarize_markets(offers),
+            "ranking_policy": POLICY_VERSION,
             "coverage_statement": "Observed public sources; not complete market coverage.",
         })
     finally:

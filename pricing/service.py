@@ -13,6 +13,9 @@ from pricing.fx import to_eur
 from pricing.identifiers import classify_query
 from pricing.markets import normalize_market
 from pricing.normalization import normalize_price
+from pricing.usage import (
+    UsageQuotaExceeded, current_usage_context, enforce_usage_quota, record_usage,
+)
 
 log = logging.getLogger(__name__)
 
@@ -41,21 +44,45 @@ def search_web_prices(
     *,
     limit: int = 10,
     fetch_pages: bool = True,
+    user_id: int | None = None,
+    usage_origin: str | None = None,
+    usage_context_id: str | None = None,
 ) -> dict:
     """Return observed offers and EXA discoveries as separate evidence classes."""
     market_code = normalize_market(market)
     identity = classify_query(query)
-    discovered = discover(identity, market_code, limit=limit)
+    usage = current_usage_context(user_id, usage_origin, usage_context_id)
+    enforce_usage_quota(usage, "exa_search")
+    try:
+        discovered = discover(identity, market_code, limit=limit)
+    except Exception as exc:
+        record_usage(
+            usage, "exa_search", status="error", provider="exa",
+            metadata={"market": market_code, "error": type(exc).__name__},
+        )
+        raise
+    record_usage(
+        usage, "exa_search", status="succeeded", provider="exa",
+        metadata={"market": market_code, "result_count": len(discovered)},
+    )
     offers: list[dict] = []
     failures: list[dict] = []
+    page_fetches = 0
 
     if fetch_pages:
         for candidate in discovered:
             url = candidate.get("url") or ""
             if not url.startswith(("http://", "https://")):
                 continue
+            enforce_usage_quota(usage, "page_fetch")
+            domain = urlparse(url).netloc
             try:
                 extracted = fetch_and_extract(url)
+                page_fetches += 1
+                record_usage(
+                    usage, "page_fetch", status="succeeded", provider="public-web",
+                    source_domain=domain, metadata={"market": market_code, "extracted": bool(extracted)},
+                )
                 if not extracted or extracted.amount is None:
                     failures.append({"url": url, "reason": "no structured price found"})
                     continue
@@ -97,7 +124,14 @@ def search_web_prices(
                     })
                     continue
                 offers.append(offer)
+            except UsageQuotaExceeded:
+                raise
             except Exception as exc:
+                page_fetches += 1
+                record_usage(
+                    usage, "page_fetch", status="error", provider="public-web",
+                    source_domain=domain, metadata={"market": market_code, "error": type(exc).__name__},
+                )
                 log.info("price extraction failed for %s: %s", url, exc)
                 failures.append({"url": url, "reason": type(exc).__name__})
 
@@ -120,4 +154,5 @@ def search_web_prices(
         "discoveries": discovered,
         "discovery_only": discovery_only,
         "extraction_failures": failures,
+        "usage": {"exa_searches": 1, "page_fetches": page_fetches},
     }

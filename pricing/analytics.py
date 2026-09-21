@@ -25,10 +25,22 @@ def _json_list(value: Any) -> list:
         return []
 
 
+def _json_dict(value: Any) -> dict:
+    if isinstance(value, dict):
+        return value
+    if not value:
+        return {}
+    try:
+        parsed = json.loads(value)
+        return parsed if isinstance(parsed, dict) else {}
+    except (TypeError, ValueError):
+        return {}
+
+
 def list_observed_items(db) -> list[dict]:
     """Return catalogue items with their current observation coverage."""
     rows = db.execute(text(f"""
-        SELECT ci.id, ci.name, ci.item_type, ci.canonical_unit, ci.cpv_code,
+        SELECT ci.id, ci.name, ci.item_type, ci.canonical_unit, ci.cpv_code, ci.attributes,
                COUNT(DISTINCT o.id) FILTER (
                    WHERE po.amount_comparable IS NOT NULL
                      AND po.currency_comparable = 'EUR'
@@ -57,23 +69,47 @@ def list_observed_items(db) -> list[dict]:
                  ) > 0) DESC,
                  ci.name
     """)).fetchall()
-    return [dict(row._mapping) for row in rows]
+    items = []
+    for row in rows:
+        item = dict(row._mapping)
+        attributes = _json_dict(item.pop("attributes", None))
+        item["display_name_fr"] = attributes.get("display_name_fr")
+        item["sector"] = attributes.get("sector")
+        item["monitoring_tier"] = attributes.get("monitoring_tier")
+        items.append(item)
+    return items
 
 
 def get_catalog_item(db, item_id: int) -> dict | None:
     row = db.execute(text(f"""
-        SELECT id, name, description, item_type, canonical_unit, cpv_code
+        SELECT id, name, description, item_type, canonical_unit, cpv_code, attributes
         FROM {SCHEMA}.catalog_items WHERE id = :item_id
     """), {"item_id": item_id}).fetchone()
-    return dict(row._mapping) if row else None
+    if not row:
+        return None
+    item = dict(row._mapping)
+    attributes = _json_dict(item.pop("attributes", None))
+    item["display_name_fr"] = attributes.get("display_name_fr")
+    item["sector"] = attributes.get("sector")
+    item["monitoring_tier"] = attributes.get("monitoring_tier")
+    return item
 
 
 def latest_item_offers(db, item_id: int) -> list[dict]:
-    """Return one latest comparable observation per active public offer."""
+    """Return one latest observation per active offer, including excluded evidence."""
     rows = db.execute(text(f"""
         WITH ranked AS (
             SELECT po.id AS observation_id, po.offer_id, o.item_id, o.market,
-                   o.title, o.seller_name, o.source_url, ps.domain AS source_domain,
+                   o.title, o.seller_name, o.source_url, o.terms,
+                   ci.canonical_unit AS item_canonical_unit,
+                   COALESCE((
+                       SELECT jsonb_agg(jsonb_build_object(
+                           'type', ii.identifier_type, 'value', ii.identifier_value,
+                           'issuer', ii.issuer
+                       ))
+                       FROM {SCHEMA}.item_identifiers ii WHERE ii.item_id = o.item_id
+                   ), '[]'::jsonb) AS item_identifiers,
+                   ps.domain AS source_domain,
                    ps.name AS source_name, po.amount_original, po.currency_original,
                    po.amount_comparable, po.currency_comparable,
                    po.unit_original, po.unit_comparable, po.vat_included,
@@ -85,33 +121,45 @@ def latest_item_offers(db, item_id: int) -> list[dict]:
                    ) AS recency_rank
             FROM {SCHEMA}.price_observations po
             JOIN {SCHEMA}.offers o ON o.id = po.offer_id
+            JOIN {SCHEMA}.catalog_items ci ON ci.id = o.item_id
             JOIN {SCHEMA}.price_sources ps ON ps.id = o.source_id
             WHERE o.item_id = :item_id
               AND o.status = 'active'
-              AND po.amount_comparable IS NOT NULL
-              AND po.currency_comparable = 'EUR'
         )
         SELECT * FROM ranked WHERE recency_rank = 1
-        ORDER BY market, amount_comparable, source_domain, title
+        ORDER BY market, amount_comparable NULLS LAST, source_domain, title
     """), {"item_id": item_id}).fetchall()
+    from pricing.comparability import assess_offer
+
     offers = []
     for row in rows:
         offer = dict(row._mapping)
         offer["amount_original"] = float(offer["amount_original"])
-        offer["amount_comparable"] = float(offer["amount_comparable"])
+        if offer["amount_comparable"] is not None:
+            offer["amount_comparable"] = float(offer["amount_comparable"])
         offer["confidence"] = float(offer["confidence"] or 0)
         offer["warnings"] = _json_list(offer.get("warnings"))
+        offer["terms"] = _json_dict(offer.get("terms"))
+        offer["item_identifiers"] = _json_list(offer.get("item_identifiers"))
         offer["supplier"] = (
             (offer.get("seller_name") or "").strip()
             or (offer.get("source_name") or "").strip()
             or offer["source_domain"]
         )
+        offer["comparability"] = assess_offer(offer)
         offers.append(offer)
     return offers
 
 
+def eligible_offers(offers: list[dict]) -> list[dict]:
+    """Return offers allowed to influence rankings under the current policy."""
+    from pricing.comparability import ranking_eligible
+    return [offer for offer in offers if ranking_eligible(offer)]
+
+
 def summarize_offers(offers: list[dict]) -> dict:
     """Describe the dispersion of a latest-offer snapshot."""
+    offers = eligible_offers(offers)
     prices = [float(offer["amount_comparable"]) for offer in offers]
     sources = {offer["source_domain"] for offer in offers}
     suppliers = {offer["supplier"] for offer in offers}
@@ -144,7 +192,7 @@ def summarize_offers(offers: list[dict]) -> dict:
 
 def summarize_markets(offers: list[dict]) -> list[dict]:
     markets: dict[str, list[dict]] = {}
-    for offer in offers:
+    for offer in eligible_offers(offers):
         markets.setdefault(offer["market"], []).append(offer)
     return [
         {"market": market, **summarize_offers(values)}

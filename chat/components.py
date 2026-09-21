@@ -192,6 +192,7 @@ def left_pane(user_email=None, sessions=None, current_sid="", lang: str = "en"):
             H4(app_tr("workspace", lang), cls="section-label"),
             A(app_tr("daily_scan", lang), href="/app/daily-scan", cls="workspace-link"),
             A(app_tr("market_overview", lang), href="/app/market-overview", cls="workspace-link"),
+            A(app_tr("catalogue", lang), href="/app/catalogue", cls="workspace-link"),
             A(app_tr("watchlists", lang), href="/app/watchlists", cls="workspace-link"),
             A(app_tr("developers_api", lang), href="/developers", cls="workspace-link"),
             A(app_tr("account_api", lang), href="/app/account", cls="workspace-link"),

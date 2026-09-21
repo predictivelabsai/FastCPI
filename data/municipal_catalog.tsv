@@ -1,0 +1,111 @@
+name	name_fr	item_type	cpv_code	cpv_label	cpv_label_fr	canonical_unit	sector	sector_name	monitoring_tier	identifier_type	identifier_value	issuer
+General construction work	Travaux de construction	service	45000000	Construction work	Travaux de construction	project	construction	Construction and infrastructure	tender_benchmark
+Municipal building construction	Travaux de construction de bâtiments	service	45210000	Building construction work	Travaux de construction de bâtiments	project	construction	Construction and infrastructure	tender_benchmark
+Road construction works	Travaux de construction de routes	service	45233120	Road construction works	Travaux de construction de routes	project	construction	Construction and infrastructure	tender_benchmark
+Road maintenance works	Travaux d'entretien routier	service	45233141	Road-maintenance works	Travaux d'entretien routier	project	construction	Construction and infrastructure	tender_benchmark
+Sewerage construction work	Travaux d'assainissement	service	45232410	Sewerage work	Travaux d'assainissement	project	construction	Construction and infrastructure	tender_benchmark
+Water and sewage pipeline construction	Travaux de construction de conduites d'eau et de canalisations d'eaux usées à grande distance	service	45231300	Construction work for water and sewage pipelines	Travaux de construction de conduites d'eau et de canalisations d'eaux usées à grande distance	project	construction	Construction and infrastructure	tender_benchmark
+Electrical installation work	Travaux d'équipement électrique	service	45310000	Electrical installation work	Travaux d'équipement électrique	hour	construction	Construction and infrastructure	quote_based
+Plumbing and sanitary works	Travaux de plomberie	service	45330000	Plumbing and sanitary works	Travaux de plomberie	hour	construction	Construction and infrastructure	quote_based
+Interior and exterior painting work	Travaux de peinture	service	45442100	Painting work	Travaux de peinture	m2	construction	Construction and infrastructure	quote_based
+Carpentry installation work	Travaux de charpenterie	service	45422000	Carpentry installation work	Travaux de charpenterie	hour	construction	Construction and infrastructure	quote_based
+Engineering design services	Services de conception technique	service	71320000	Engineering design services	Services de conception technique	hour	construction	Construction and infrastructure	quote_based
+Architectural engineering and planning services	Services d'architecture, d'ingénierie et de planification	service	71240000	Architectural, engineering and planning services	Services d'architecture, d'ingénierie et de planification	hour	construction	Construction and infrastructure	quote_based
+Institutional cleaning products	Produits de nettoyage	good	39830000	Cleaning products	Produits de nettoyage	pack	facilities	Facilities and building operations	web_price
+Commercial toilet paper case	Papier hygiénique	good	33761000	Toilet paper	Papier hygiénique	pack	facilities	Facilities and building operations	web_price
+Microfibre cleaning cloth pack	Torchons de nettoyage	good	39525800	Cleaning cloths	Torchons de nettoyage	pack	facilities	Facilities and building operations	web_price
+Brooms and cleaning brushes	Balais et brosses et autres produits de nettoyage ménager	good	39224300	Brooms and brushes and other articles for household cleaning	Balais et brosses et autres produits de nettoyage ménager	each	facilities	Facilities and building operations	web_price
+Municipal building cleaning	Services de nettoyage de bâtiments	service	90911200	Building-cleaning services	Services de nettoyage de bâtiments	m2	facilities	Facilities and building operations	quote_based
+Window cleaning services	Services de nettoyage de vitres	service	90911300	Window-cleaning services	Services de nettoyage de vitres	m2	facilities	Facilities and building operations	quote_based
+Building installation maintenance	Services de réparation et d'entretien d'installations de bâtiments	service	50700000	Repair and maintenance services of building installations	Services de réparation et d'entretien d'installations de bâtiments	hour	facilities	Facilities and building operations	quote_based
+Central heating maintenance	Services de réparation et d'entretien de chauffage central	service	50720000	Repair and maintenance services of central heating	Services de réparation et d'entretien de chauffage central	hour	facilities	Facilities and building operations	quote_based
+Cooling system maintenance	Services de réparation et d'entretien de groupes de réfrigération	service	50730000	Repair and maintenance services of cooler groups	Services de réparation et d'entretien de groupes de réfrigération	hour	facilities	Facilities and building operations	quote_based
+General repair and maintenance	Services divers d'entretien et de réparation	service	50800000	Miscellaneous repair and maintenance services	Services divers d'entretien et de réparation	hour	facilities	Facilities and building operations	quote_based
+Janitorial services	Services de conciergerie	service	98341130	Janitorial services	Services de conciergerie	hour	facilities	Facilities and building operations	quote_based
+Facilities management services	Services de gestion d'installations	service	79993100	Facilities management services	Services de gestion d'installations	month	facilities	Facilities and building operations	tender_benchmark
+Household refuse collection	Services de collecte des ordures	service	90511000	Refuse collection services	Services de collecte des ordures	month	waste_environment	Waste and environmental services	tender_benchmark
+Refuse transport	Services de transport des ordures ménagères	service	90512000	Refuse transport services	Services de transport des ordures ménagères	tonne	waste_environment	Waste and environmental services	quote_based
+Non-hazardous waste treatment	Services de traitement et d'élimination des ordures ménagères et des déchets non dangereux	service	90513000	Non-hazardous refuse and waste treatment and disposal services	Services de traitement et d'élimination des ordures ménagères et des déchets non dangereux	tonne	waste_environment	Waste and environmental services	quote_based
+Recycling services	Services de recyclage des ordures ménagères	service	90514000	Refuse recycling services	Services de recyclage des ordures ménagères	tonne	waste_environment	Waste and environmental services	quote_based
+Waste site management	Services de gestion de décharges	service	90533000	Waste-tip management services	Services de gestion de décharges	month	waste_environment	Waste and environmental services	tender_benchmark
+Street cleaning and sweeping	Services de voirie et services de balayage des rues	service	90610000	Street-cleaning and sweeping services	Services de voirie et services de balayage des rues	km	waste_environment	Waste and environmental services	quote_based
+Snow clearing services	Services de déneigement	service	90620000	Snow-clearing services	Services de déneigement	km	waste_environment	Waste and environmental services	quote_based
+Road ice clearing services	Services de déverglaçage	service	90630000	Ice-clearing services	Services de déverglaçage	km	waste_environment	Waste and environmental services	quote_based
+Outdoor waste and recycling bin	Conteneurs et poubelles de déchets	good	34928480	Waste and rubbish containers and bins	Conteneurs et poubelles de déchets	each	waste_environment	Waste and environmental services	web_price
+Heavy-duty refuse sacks case	Sacs et sachets à ordures en polyéthylène	good	19640000	Polythene waste and refuse sacks and bags	Sacs et sachets à ordures en polyéthylène	pack	waste_environment	Waste and environmental services	web_price
+Business laptop computer	Ordinateurs portables	good	30213100	Portable computers	Ordinateurs portables	each	it_digital	IT and digital services	web_price
+Business desktop computer	Ordinateur de bureau	good	30213300	Desktop computer	Ordinateur de bureau	each	it_digital	IT and digital services	web_price
+24-inch business display monitor	Écrans de visualisation	good	30231300	Display screens	Écrans de visualisation	each	it_digital	IT and digital services	web_price
+Network laser printer	Imprimantes laser	good	30232110	Laser printers	Imprimantes laser	each	it_digital	IT and digital services	web_price
+Colour inkjet printer	Imprimantes à jet d'encre	good	30232150	Inkjet printers	Imprimantes à jet d'encre	each	it_digital	IT and digital services	web_price
+Business network switch	Matériel de réseau	good	32420000	Network equipment	Matériel de réseau	each	it_digital	IT and digital services	web_price
+Office VoIP telephone	Matériel téléphonique	good	32550000	Telephone equipment	Matériel téléphonique	each	it_digital	IT and digital services	web_price
+Business software licence	Logiciels et systèmes d'information	good	48000000	Software package and information systems	Logiciels et systèmes d'information	year	it_digital	IT and digital services	web_price
+Software support services	Services d'assistance relative aux logiciels	service	72261000	Software support services	Services d'assistance relative aux logiciels	hour	it_digital	IT and digital services	quote_based
+Hourly technical computer support	Support informatique technique à l’heure	service	72611000	Technical computer support services	Services d'assistance technique informatique	hour	it_digital	IT and digital services	quote_based
+Business internet connection	Services internet	service	72400000	Internet services	Services internet	month	it_digital	IT and digital services	web_price
+Information technology consulting	Services de technologies de l'information	service	72222300	Information technology services	Services de technologies de l'information	hour	it_digital	IT and digital services	quote_based
+Computer equipment maintenance	Maintenance et réparation de matériel informatique	service	50312000	Maintenance and repair of computer equipment	Maintenance et réparation de matériel informatique	hour	it_digital	IT and digital services	quote_based
+Endpoint antivirus licence	Logiciels antivirus	good	48761000	Anti-virus software package	Logiciels antivirus	year	it_digital	IT and digital services	web_price
+General office supplies basket	Fournitures de bureau	good	30192000	Office supplies	Fournitures de bureau	pack	office_admin	Office and administration	web_price
+A4 80 gsm office copy paper, 500 sheets	Papier de bureau A4 80 g/m², 500 feuilles	good	30197630	Printing paper	Papier d'impression	pack	office_admin	Office and administration	web_price
+Standard black toner cartridge	Cartouches de toner	good	30125100	Toner cartridges	Cartouches de toner	each	office_admin	Office and administration	web_price
+HP 207A black toner cartridge W2210A	Cartouche de toner noir HP 207A W2210A	good	30125110	Toner for laser printers/fax machines	Encre pour imprimantes laser/télécopieurs	each	office_admin	Office and administration	web_price	sku	W2210A	HP
+Photocopier toner cartridge	Encre pour photocopieurs	good	30125120	Toner for photocopiers	Encre pour photocopieurs	each	office_admin	Office and administration	web_price
+Ballpoint pen box	Stylos à bille	good	30192121	Ballpoint pens	Stylos à bille	pack	office_admin	Office and administration	web_price
+General stationery basket	Papeterie	good	30192700	Stationery	Papeterie	pack	office_admin	Office and administration	web_price
+Archive box and letter tray set	Boîtes-classeurs, classe-lettres, boîtes de rangement et articles similaires	good	30199500	Box files, letter trays, storage boxes and similar articles	Boîtes-classeurs, classe-lettres, boîtes de rangement et articles similaires	pack	office_admin	Office and administration	web_price
+Office equipment bundle	Équipement de bureau, excepté les meubles	good	30191000	Office equipment except furniture	Équipement de bureau, excepté les meubles	each	office_admin	Office and administration	web_price
+Ergonomic office desk and chair set	Mobilier de bureau	good	39130000	Office furniture	Mobilier de bureau	set	office_admin	Office and administration	web_price
+Compact passenger car	Voitures particulières	good	34110000	Passenger cars	Voitures particulières	each	fleet_transport	Fleet and transport	web_price
+Light commercial van	Fourgons intégrés	good	34136000	Vans	Fourgons intégrés	each	fleet_transport	Fleet and transport	web_price
+Municipal road sweeper vehicle	Balayeuses	good	34144430	Road-sweeping vehicles	Balayeuses	each	fleet_transport	Fleet and transport	quote_based
+Municipal firefighting vehicle	Véhicules de lutte contre l'incendie	good	34144210	Firefighting vehicles	Véhicules de lutte contre l'incendie	each	fleet_transport	Fleet and transport	tender_benchmark
+Commercial vehicle tyre	Pneus pour charges légères et lourdes	good	34350000	Tyres for heavy/light-duty vehicles	Pneus pour charges légères et lourdes	each	fleet_transport	Fleet and transport	web_price
+Fleet vehicle maintenance	Services de réparation et d'entretien de véhicules à moteur et d'équipements connexes	service	50110000	Repair and maintenance services of motor vehicles and associated equipment	Services de réparation et d'entretien de véhicules à moteur et d'équipements connexes	hour	fleet_transport	Fleet and transport	quote_based
+Road diesel fuel	Carburant diesel	good	09134200	Diesel fuel	Carburant diesel	l	fleet_transport	Fleet and transport	web_price
+Unleaded petrol	Essence	good	09132000	Petrol	Essence	l	fleet_transport	Fleet and transport	web_price
+Special-purpose passenger transport	Services spécialisés de transport routier de passagers	service	60130000	Special-purpose road passenger-transport services	Services spécialisés de transport routier de passagers	trip	fleet_transport	Fleet and transport	quote_based
+Battery electric municipal car	Véhicules électriques	good	34144900	Electric vehicles	Véhicules électriques	each	fleet_transport	Fleet and transport	web_price
+Classroom table and chair set	Mobilier scolaire	good	39160000	School furniture	Mobilier scolaire	set	education_catering	Education and catering	web_price
+Digital classroom teaching equipment	Matériel pédagogique	good	39162100	Teaching equipment	Matériel pédagogique	each	education_catering	Education and catering	web_price
+Classroom teaching supplies pack	Fournitures scolaires	good	39162110	Teaching supplies	Fournitures scolaires	pack	education_catering	Education and catering	web_price
+Educational board game	Jeux	good	37524000	Games	Jeux	each	education_catering	Education and catering	web_price
+Primary school textbook	Livres scolaires	good	22111000	School books	Livres scolaires	each	education_catering	Education and catering	web_price
+Fresh fruit and vegetable basket	Fruits, légumes et produits connexes	good	15300000	Fruit, vegetables and related products	Fruits, légumes et produits connexes	kg	education_catering	Education and catering	web_price
+School dairy products basket	Produits laitiers	good	15500000	Dairy products	Produits laitiers	kg	education_catering	Education and catering	web_price
+Institutional meat products basket	Produits de l'élevage, viande et produits à base de viande	good	15100000	Animal products, meat and meat products	Produits de l'élevage, viande et produits à base de viande	kg	education_catering	Education and catering	web_price
+Fresh bread and bakery basket	Produits de panification, pâtisserie fraîche et gâteaux	good	15810000	Bread products, fresh pastry goods and cakes	Produits de panification, pâtisserie fraîche et gâteaux	kg	education_catering	Education and catering	web_price
+Institutional catering services	Services traiteur	service	55520000	Catering services	Services traiteur	meal	education_catering	Education and catering	quote_based
+School meal catering	Service traiteur pour écoles	service	55524000	School catering services	Service traiteur pour écoles	meal	education_catering	Education and catering	quote_based
+Commercial kitchen equipment set	Équipement de cuisine, articles de maison, articles ménagers et fournitures de restauration	good	39220000	Kitchen equipment, household and domestic items and catering supplies	Équipement de cuisine, articles de maison, articles ménagers et fournitures de restauration	set	education_catering	Education and catering	web_price
+General medical consumables pack	Consommables médicaux	good	33140000	Medical consumables	Consommables médicaux	pack	health_safety_social	Health, safety and social care	web_price
+Common pharmaceutical products basket	Produits pharmaceutiques	good	33600000	Pharmaceutical products	Produits pharmaceutiques	pack	health_safety_social	Health, safety and social care	web_price
+Workplace first-aid box	Kits de secours	good	33141623	First-aid boxes	Kits de secours	each	health_safety_social	Health, safety and social care	web_price
+Community health services	Services de santé	service	85100000	Health services	Services de santé	hour	health_safety_social	Health, safety and social care	tender_benchmark
+Community social work services	Services d'action sociale	service	85310000	Social work services	Services d'action sociale	hour	health_safety_social	Health, safety and social care	tender_benchmark
+Social support services	Services sociaux	service	85320000	Social services	Services sociaux	hour	health_safety_social	Health, safety and social care	tender_benchmark
+Building security guard services	Services de sécurité	service	79710000	Security services	Services de sécurité	hour	health_safety_social	Health, safety and social care	quote_based
+Public security support services	Services de sécurité publique	service	75241000	Public security services	Services de sécurité publique	hour	health_safety_social	Health, safety and social care	tender_benchmark
+Commercial fire extinguisher	Appareils extincteurs	good	35111300	Fire extinguishers	Appareils extincteurs	each	health_safety_social	Health, safety and social care	web_price
+High-visibility protective clothing	Vêtements de protection et de sécurité	good	35113400	Protective and safety clothing	Vêtements de protection et de sécurité	each	health_safety_social	Health, safety and social care	web_price
+Industrial safety helmet	Casques	good	18444110	Helmets	Casques	each	health_safety_social	Health, safety and social care	web_price
+Reusable medical workwear	Vêtements pour personnel médical	good	33199000	Medical clothing	Vêtements pour personnel médical	each	health_safety_social	Health, safety and social care	web_price
+Seasonal live plants tray	Plantes vivantes, bulbes, racines, boutures et greffons	good	03121100	Live plants, bulbs, roots, cuttings and slips	Plantes vivantes, bulbes, racines, boutures et greffons	pack	parks_public_realm	Parks and public realm	web_price
+Urban street tree	Arbres	good	03452000	Trees	Arbres	each	parks_public_realm	Parks and public realm	quote_based
+Municipal gardening tool set	Matériel de jardinage divers	good	16160000	Miscellaneous gardening equipment	Matériel de jardinage divers	set	parks_public_realm	Parks and public realm	web_price
+Commercial lawn mower	Faucheuses	good	16310000	Mowers	Faucheuses	each	parks_public_realm	Parks and public realm	web_price
+Public park and playground equipment	Équipement de parcs et de terrains de jeux	good	43325000	Park and playground equipment	Équipement de parcs et de terrains de jeux	each	parks_public_realm	Parks and public realm	quote_based
+Green area planting and maintenance	Réalisation et entretien d'espaces verts	service	77310000	Planting and maintenance services of green areas	Réalisation et entretien d'espaces verts	hour	parks_public_realm	Parks and public realm	quote_based
+Urban tree maintenance	Services d'élagage	service	77211500	Tree-maintenance services	Services d'élagage	hour	parks_public_realm	Parks and public realm	quote_based
+Tree pruning and hedge trimming	Élagage des arbres et taille des haies	service	77340000	Tree pruning and hedge trimming	Élagage des arbres et taille des haies	hour	parks_public_realm	Parks and public realm	quote_based
+Landscape architectural services	Services d'architecture paysagère	service	71420000	Landscape architectural services	Services d'architecture paysagère	hour	parks_public_realm	Parks and public realm	quote_based
+Municipal electricity supply	Électricité	good	09310000	Electricity	Électricité	kwh	utilities_energy	Utilities and energy	web_price
+Municipal natural gas supply	Gaz naturel	good	09123000	Natural gas	Gaz naturel	kwh	utilities_energy	Utilities and energy	web_price
+Solar photovoltaic module	Modules solaires photovoltaïques	good	09331200	Solar photovoltaic modules	Modules solaires photovoltaïques	each	utilities_energy	Utilities and energy	web_price
+LED exterior luminaire	Éclairage extérieur	good	31527200	Exterior lights	Éclairage extérieur	each	utilities_energy	Utilities and energy	web_price
+Street-lighting equipment	Équipement d'éclairage public	good	34928500	Street-lighting equipment	Équipement d'éclairage public	each	utilities_energy	Utilities and energy	web_price
+Street-lighting maintenance	Services d'entretien de l'éclairage public	service	50232100	Street-lighting maintenance services	Services d'entretien de l'éclairage public	hour	utilities_energy	Utilities and energy	quote_based
+Municipal water supply	Distribution d'eau	good	65110000	Water distribution	Distribution d'eau	m3	utilities_energy	Utilities and energy	web_price
+Sewerage network management	Service de gestion du réseau d'assainissement	service	90480000	Sewerage management services	Service de gestion du réseau d'assainissement	month	utilities_energy	Utilities and energy	tender_benchmark
+Energy management and advisory	Énergie et services connexes	service	71314000	Energy and related services	Énergie et services connexes	hour	utilities_energy	Utilities and energy	quote_based

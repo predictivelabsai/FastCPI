@@ -75,7 +75,7 @@ def create_app(root_path: str = "") -> FastAPI:
 
     @api.post("/auth/register", response_model=AuthResponse, tags=["auth"])
     def register(body: RegisterRequest, db: Session = Depends(get_db)):
-        from auth.access import consume_invitation, invite_only_enabled, pending_invitation
+        from auth.access import consume_invitation, pending_invitation
         email = body.email.strip().lower()
         existing = db.execute(
             text(f"SELECT id, password_hash FROM {SCHEMA}.chat_users WHERE email = :email"),
@@ -87,9 +87,6 @@ def create_app(root_path: str = "") -> FastAPI:
             raise HTTPException(409, "An account with this email already exists")
         if existing and not existing.password_hash and not invitation:
             raise HTTPException(409, "This account uses Google Sign-In")
-        if invite_only_enabled() and not existing and not invitation:
-            raise HTTPException(403, "FastCPI is invite-only")
-
         pw_hash = hash_password(body.password)
 
         if existing:
@@ -164,10 +161,8 @@ def create_app(root_path: str = "") -> FastAPI:
             uid = row.id
             name = row.name or name
         else:
-            from auth.access import consume_invitation, invite_only_enabled, pending_invitation
+            from auth.access import consume_invitation, pending_invitation
             invitation = pending_invitation(db, email)
-            if invite_only_enabled() and not invitation:
-                raise HTTPException(403, "FastCPI is invite-only")
             r = db.execute(
                 text(f"INSERT INTO {SCHEMA}.chat_users (email, name, is_verified) "
                      "VALUES (:email, :name, TRUE) RETURNING id"),
@@ -254,14 +249,18 @@ def create_app(root_path: str = "") -> FastAPI:
         require_scope(principal, "prices:observe")
         from pricing.service import search_web_prices
         from pricing.repository import persist_search_result
+        from pricing.usage import UsageQuotaExceeded
         try:
             result = search_web_prices(
                 body.query, body.market, limit=body.limit, fetch_pages=body.fetch_pages,
+                user_id=principal["user_id"], usage_origin="api-sync-observe",
             )
             result["item_id"] = body.item_id
             return persist_search_result(db, result, user_id=principal["user_id"])
         except ValueError as exc:
             raise HTTPException(422, str(exc)) from exc
+        except UsageQuotaExceeded as exc:
+            raise HTTPException(429, str(exc), headers={"Retry-After": "3600"}) from exc
         except Exception as exc:
             log.exception("price observation failed")
             raise HTTPException(502, f"Price discovery failed: {type(exc).__name__}") from exc
@@ -390,19 +389,29 @@ def create_app(root_path: str = "") -> FastAPI:
 
     @api.get("/items", tags=["items"])
     def list_items(
-        q: str = "", limit: int = 50,
+        q: str = "", catalogue_kind: str = "", sector: str = "", limit: int = 250,
         principal: dict = Depends(get_api_principal), db: Session = Depends(get_db),
     ):
         require_scope(principal, "prices:read")
+        if catalogue_kind and catalogue_kind not in {"line", "sample_item", "user_item"}:
+            raise HTTPException(422, "Unsupported catalogue kind")
         rows = db.execute(text(f"""
             SELECT ci.*,
                    COALESCE(jsonb_agg(jsonb_build_object('type',ii.identifier_type,'value',ii.identifier_value))
                             FILTER (WHERE ii.id IS NOT NULL), '[]'::jsonb) AS identifiers
             FROM {SCHEMA}.catalog_items ci
             LEFT JOIN {SCHEMA}.item_identifiers ii ON ii.item_id=ci.id
-            WHERE (:q='' OR ci.name ILIKE :pattern OR ci.description ILIKE :pattern)
+            WHERE (:kind='' OR ci.catalogue_kind=:kind)
+              AND (:sector='' OR COALESCE(ci.attributes->>'sector','')=:sector)
+              AND (:q='' OR ci.name ILIKE :pattern OR ci.description ILIKE :pattern
+                   OR ci.cpv_code ILIKE :pattern
+                   OR COALESCE(ci.attributes->>'display_name_fr','') ILIKE :pattern
+                   OR COALESCE(ii.identifier_value,'') ILIKE :pattern)
             GROUP BY ci.id ORDER BY ci.updated_at DESC LIMIT :limit
-        """), {"q": q, "pattern": f"%{q}%", "limit": min(max(limit, 1), 200)}).fetchall()
+        """), {
+            "q": q, "pattern": f"%{q}%", "kind": catalogue_kind, "sector": sector,
+            "limit": min(max(limit, 1), 250),
+        }).fetchall()
         return [dict(row._mapping) for row in rows]
 
     @api.post("/items", tags=["items"])
@@ -414,8 +423,8 @@ def create_app(root_path: str = "") -> FastAPI:
                 raise HTTPException(422, "CPV code must contain eight digits")
         row = db.execute(text(f"""
             INSERT INTO {SCHEMA}.catalog_items
-                (item_type,name,description,cpv_code,canonical_unit,created_by)
-            VALUES (:kind,:name,:description,:cpv,:unit,:uid) RETURNING *
+                (catalogue_kind,item_type,name,description,cpv_code,canonical_unit,created_by)
+            VALUES ('user_item',:kind,:name,:description,:cpv,:unit,:uid) RETURNING *
         """), {"kind": body.item_type, "name": body.name, "description": body.description or None,
                  "cpv": cpv, "unit": body.canonical_unit, "uid": user["user_id"]}).fetchone()
         for identifier in body.identifiers:
@@ -440,9 +449,10 @@ def create_app(root_path: str = "") -> FastAPI:
         """Compare latest supplier offers within one country, with EU context."""
         require_scope(principal, "prices:read")
         from pricing.analytics import (
-            choose_default_market, get_catalog_item, json_ready, latest_item_offers,
+            choose_default_market, eligible_offers, get_catalog_item, json_ready, latest_item_offers,
             summarize_markets, summarize_offers,
         )
+        from pricing.comparability import POLICY_VERSION
         from pricing.markets import normalize_market
 
         item = get_catalog_item(db, item_id)
@@ -457,16 +467,25 @@ def create_app(root_path: str = "") -> FastAPI:
         else:
             selected_market = choose_default_market(offers)
         country_offers = [offer for offer in offers if offer["market"] == selected_market]
+        country_ranked_offers = eligible_offers(country_offers)
+        country_excluded_offers = [offer for offer in country_offers if offer not in country_ranked_offers]
+        eu_ranked_offers = eligible_offers(offers)
         payload = {
             "item": item,
             "market": selected_market,
             "country_summary": summarize_offers(country_offers),
             "country_offers": country_offers,
+            "country_ranked_offers": country_ranked_offers,
+            "country_excluded_offers": country_excluded_offers,
             "eu_summary": summarize_offers(offers),
             "eu_markets": summarize_markets(offers),
+            "eu_ranked_offer_count": len(eu_ranked_offers),
+            "eu_excluded_offer_count": len(offers) - len(eu_ranked_offers),
             "methodology": {
-                "snapshot": "latest comparable observation per active offer",
+                "snapshot": "latest observed price per active public offer",
                 "currency": "EUR",
+                "ranking_policy": POLICY_VERSION,
+                "ranking": "statistics include only offers that pass the versioned comparability policy",
                 "coverage": "observed public sources; not complete market coverage",
             },
         }

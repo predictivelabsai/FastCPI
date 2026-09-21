@@ -216,6 +216,9 @@ def register_chat_routes(rt):
 
             accumulated = []
             tool_calls_log = []
+            from pricing.usage import usage_context
+            usage_scope = usage_context(uid, "chat", str(session_id))
+            usage_scope.__enter__()
 
             try:
                 from agents.base import cached_agent
@@ -253,6 +256,8 @@ def register_chat_routes(rt):
             except Exception as e:
                 log.exception("chat stream failed")
                 yield sse.event(sse.ERROR, {"message": str(e)})
+            finally:
+                usage_scope.__exit__(None, None, None)
 
             final = "".join(accumulated) or "(no response)"
             _persist_message(session_id, "assistant", final, agent_slug=agent_slug,

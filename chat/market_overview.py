@@ -14,7 +14,7 @@ from starlette.responses import RedirectResponse
 from chat.components import left_pane, signin_overlay
 from chat.layout import _head
 from pricing.analytics import (
-    choose_default_market, get_catalog_item, latest_item_offers,
+    choose_default_market, eligible_offers, get_catalog_item, latest_item_offers,
     list_observed_items, summarize_markets, summarize_offers,
 )
 from pricing.markets import MARKETS
@@ -147,7 +147,25 @@ def _source_card(offer: dict, lang: str):
         "delivery not confirmed": app_tr("delivery_unknown", lang),
         "VAT status unknown": app_tr("vat_unknown", lang),
     }
-    warning_line = " · ".join(translations.get(str(warning), str(warning)) for warning in warnings)
+    assessment = offer.get("comparability") if isinstance(offer.get("comparability"), dict) else {}
+    status = assessment.get("status", "eligible")
+    reasons = assessment.get("exclusion_reasons", []) if status == "excluded" else assessment.get("caveats", [])
+    reason_line = " · ".join(
+        app_tr(f"comparability_{reason.get('code')}", lang)
+        for reason in reasons if isinstance(reason, dict) and reason.get("code")
+    )
+    assessed_codes = {
+        reason.get("code") for reason in assessment.get("caveats", [])
+        if isinstance(reason, dict)
+    }
+    redundant_warnings = {
+        "delivery not confirmed": "delivery_not_confirmed",
+        "VAT status unknown": "vat_status_unknown",
+    }
+    warning_line = " · ".join(
+        translations.get(str(warning), str(warning)) for warning in warnings
+        if redundant_warnings.get(str(warning)) not in assessed_codes
+    )
     original = f"{_number(offer['amount_original'], lang)} {offer['currency_original']}"
     return Div(
         Div(
@@ -160,24 +178,29 @@ def _source_card(offer: dict, lang: str):
         Div(
             Span(offer["market"], cls="source-pill"),
             Span(offer["source_domain"], cls="source-pill"),
+            Span(app_tr(f"comparability_status_{status}", lang),
+                 cls=f"source-pill comparability-{status}"),
             Span(f"{round(offer['confidence'] * 100)}% {app_tr('confidence', lang)}", cls="source-pill"),
             Span(f"{app_tr('captured', lang)} {_date(offer.get('captured_at'), lang)}", cls="source-card-meta"),
             cls="source-card-meta-row",
         ),
+        P(reason_line, cls="source-card-comparability") if reason_line else None,
         P(warning_line, cls="source-card-warning") if warning_line else None,
         A(app_tr("open_source", lang), " →", href=_safe_source_url(offer.get("source_url")),
           target="_blank", rel="noopener noreferrer", cls="source-card-link"),
-        cls="variance-source-card",
+        cls=f"variance-source-card{' excluded' if status == 'excluded' else ''}",
     )
 
 
 def _country_content(item: dict, market: str, offers: list[dict], lang: str):
     market_offers = [offer for offer in offers if offer["market"] == market]
-    summary = summarize_offers(market_offers)
+    ranked_offers = eligible_offers(market_offers)
+    excluded_offers = [offer for offer in market_offers if offer not in ranked_offers]
+    summary = summarize_offers(ranked_offers)
     country_name = app_market_name(market, MARKETS[market]["name"], lang)
     scripts = []
-    if market_offers:
-        figure = _supplier_chart(market_offers, country_name, summary, lang)
+    if ranked_offers:
+        figure = _supplier_chart(ranked_offers, country_name, summary, lang)
         scripts.append(
             f"Plotly.newPlot('country-supplier-chart', {json.dumps(figure['data'])}, "
             f"{json.dumps(figure['layout'])}, {{responsive:true,displayModeBar:false}});"
@@ -192,29 +215,42 @@ def _country_content(item: dict, market: str, offers: list[dict], lang: str):
                    f"{app_tr('range', lang)} {_price(summary['range'], summary['unit'], lang)}" if summary["range"] is not None else ""),
         cls="variance-stats",
     )
-    if not market_offers:
-        dashboard = Div(P(app_tr("no_prices_country", lang), cls="variance-empty-title"),
-                        P(app_tr("no_prices_country_detail", lang), cls="variance-empty-copy"), cls="variance-empty")
-    else:
+    dashboard_parts = []
+    if ranked_offers:
         coverage_note = app_tr("single_source_warning", lang) if summary["source_count"] < 2 else app_tr("multiple_source_note", lang)
-        dashboard = Div(
+        dashboard_parts.extend((
             Div(id="country-supplier-chart", cls="variance-chart"),
             Div(coverage_note, cls="variance-coverage-note"),
             H3(app_tr("supplier_source_evidence", lang), cls="variance-section-title"),
             P(app_tr("latest_snapshot_note", lang), cls="variance-section-copy"),
-            Div(*[_source_card(offer, lang) for offer in market_offers], cls="variance-source-list"),
-        )
+            Div(*[_source_card(offer, lang) for offer in ranked_offers], cls="variance-source-list"),
+        ))
+    else:
+        dashboard_parts.append(Div(
+            P(app_tr("no_eligible_prices_country", lang), cls="variance-empty-title"),
+            P(app_tr("no_eligible_prices_country_detail", lang), cls="variance-empty-copy"),
+            cls="variance-empty",
+        ))
+    if excluded_offers:
+        dashboard_parts.extend((
+            H3(app_tr("excluded_from_ranking", lang), cls="variance-section-title"),
+            P(app_tr("excluded_evidence_intro", lang), cls="variance-section-copy"),
+            Div(*[_source_card(offer, lang) for offer in excluded_offers], cls="variance-source-list"),
+        ))
+    dashboard = Div(*dashboard_parts)
     heading = Div(
         Span(app_tr("primary_review", lang), cls="review-badge primary"),
-        H2(f"{app_catalog_item_name(item['name'], lang)} · {country_name}", cls="variance-heading"),
+        H2(f"{app_catalog_item_name(item['name'], lang, item.get('display_name_fr'))} · {country_name}", cls="variance-heading"),
         P(app_tr("country_review_intro", lang), cls="variance-lead"),
     )
     return Div(heading, stats, dashboard), scripts
 
 
 def _eu_content(item: dict, offers: list[dict], lang: str):
+    ranked_offers = eligible_offers(offers)
+    excluded_offers = [offer for offer in offers if offer not in ranked_offers]
     rows = summarize_markets(offers)
-    overall = summarize_offers(offers)
+    overall = summarize_offers(ranked_offers)
     scripts = []
     if rows:
         figure = _eu_chart(rows, lang)
@@ -228,6 +264,7 @@ def _eu_content(item: dict, offers: list[dict], lang: str):
                    f"{overall['offer_count']} {app_tr('latest_offers', lang)}"),
         _stat_card(app_tr("lowest_observed", lang), _price(overall["lowest"], overall["unit"], lang)),
         _stat_card(app_tr("observed_spread", lang), _percentage(overall["spread_pct"], lang)),
+        _stat_card(app_tr("excluded_offers", lang), str(len(excluded_offers))),
         cls="variance-stats",
     )
     market_cards = [Div(
@@ -243,17 +280,27 @@ def _eu_content(item: dict, offers: list[dict], lang: str):
     ) for row in rows]
     heading = Div(
         Span(app_tr("secondary_review", lang), cls="review-badge secondary"),
-        H2(f"{app_catalog_item_name(item['name'], lang)} · {app_tr('across_eu', lang)}", cls="variance-heading"),
+        H2(f"{app_catalog_item_name(item['name'], lang, item.get('display_name_fr'))} · {app_tr('across_eu', lang)}", cls="variance-heading"),
         P(app_tr("eu_review_intro", lang), cls="variance-lead"),
     )
-    dashboard = (
-        Div(Div(id="eu-variance-chart", cls="variance-chart"),
+    if ranked_offers:
+        dashboard = Div(Div(id="eu-variance-chart", cls="variance-chart"),
             H3(app_tr("country_ranges", lang), cls="variance-section-title"),
             Div(*market_cards, cls="eu-market-list"),
             H3(app_tr("supplier_source_evidence", lang), cls="variance-section-title"),
-            Div(*[_source_card(offer, lang) for offer in offers], cls="variance-source-list"))
-        if offers else Div(P(app_tr("no_item_observations", lang), cls="variance-empty-title"), cls="variance-empty")
-    )
+            Div(*[_source_card(offer, lang) for offer in ranked_offers], cls="variance-source-list"),
+            H3(app_tr("excluded_from_ranking", lang), cls="variance-section-title") if excluded_offers else None,
+            P(app_tr("excluded_evidence_intro", lang), cls="variance-section-copy") if excluded_offers else None,
+            Div(*[_source_card(offer, lang) for offer in excluded_offers], cls="variance-source-list") if excluded_offers else None)
+    elif offers:
+        dashboard = Div(
+            Div(P(app_tr("no_eligible_prices_eu", lang), cls="variance-empty-title"),
+                P(app_tr("excluded_evidence_intro", lang), cls="variance-empty-copy"), cls="variance-empty"),
+            H3(app_tr("excluded_from_ranking", lang), cls="variance-section-title"),
+            Div(*[_source_card(offer, lang) for offer in excluded_offers], cls="variance-source-list"),
+        )
+    else:
+        dashboard = Div(P(app_tr("no_item_observations", lang), cls="variance-empty-title"), cls="variance-empty")
     return Div(heading, stats, dashboard), scripts
 
 
@@ -295,7 +342,7 @@ def register_market_overview_routes(rt):
             controls = Form(
                 Div(Label(app_tr("item_label", lang), for_="item", cls="variance-control-label"),
                     Select(*[
-                        Option(f"{app_catalog_item_name(row['name'], lang)} · {_source_count(row['source_count'], lang)}",
+                        Option(f"{app_catalog_item_name(row['name'], lang, row.get('display_name_fr'))} · {_source_count(row['source_count'], lang)}",
                                value=str(row["id"]), selected=row["id"] == item_id)
                         for row in items
                     ], id="item", name="item", cls="variance-select", onchange="this.form.submit()"),

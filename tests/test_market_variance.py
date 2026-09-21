@@ -1,6 +1,9 @@
 from datetime import datetime, timezone
 
+from fasthtml.common import to_xml
+
 from api.app import create_app
+from chat.market_overview import _source_card
 from pricing.analytics import choose_default_market, summarize_markets, summarize_offers
 from utils.fastcpi_i18n import app_catalog_item_name, app_tr
 
@@ -57,4 +60,29 @@ def test_market_variance_copy_is_complete_in_french():
     assert app_tr("within_country", "fr") == "Dans un même pays"
     assert app_tr("across_eu", "fr") == "Dans l’Union européenne"
     assert app_tr("supplier_source_evidence", "fr") == "Preuves des fournisseurs et des sources"
+    assert app_tr("excluded_from_ranking", "fr") == "Exclues du classement"
+    assert app_tr("comparability_status_eligible_with_caveats", "fr") == "Admissible avec réserves"
     assert app_catalog_item_name("Hourly technical computer support", "fr") == "Support informatique technique à l’heure"
+    assert app_catalog_item_name("Business laptop computer", "fr", "Ordinateurs portables") == "Ordinateurs portables"
+
+
+def test_excluded_source_card_keeps_clickable_evidence_and_french_reason():
+    offer = _offer("FR", 5.0, "supplier.fr") | {
+        "title": "Papier A4",
+        "amount_original": 5.0,
+        "currency_original": "EUR",
+        "confidence": 0.4,
+        "warnings": [],
+        "source_url": "https://supplier.fr/paper",
+        "comparability": {
+            "status": "excluded",
+            "ranking_eligible": False,
+            "exclusion_reasons": [{"code": "low_extraction_confidence"}],
+            "caveats": [],
+        },
+    }
+    html = to_xml(_source_card(offer, "fr"))
+    assert "variance-source-card excluded" in html
+    assert "Exclue" in html
+    assert "confiance d’extraction" in html
+    assert 'href="https://supplier.fr/paper"' in html
