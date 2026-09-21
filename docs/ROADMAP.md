@@ -28,13 +28,13 @@ product for procurement teams. It is not an official consumer price index.
 - The third-party surface includes cursor-paged, quota-controlled asynchronous observation jobs
   and an authenticated read-only MCP Streamable HTTP alpha at `/mcp/` with six tools and a
   methodology resource.
-- A versioned comparable-offer policy is implemented locally and awaiting deployment. It exposes
+- A versioned comparable-offer policy is deployed. It exposes
   ranking eligibility, machine-readable exclusion reasons and commercial-term caveats through the
   market dashboard, REST API and MCP output; excluded evidence remains visible but cannot influence
   supplier statistics.
 - A shared paid-usage ledger now meters Exa searches and page fetches across chat, manual watches,
-  synchronous observation and asynchronous jobs. The standalone worker topology exposes a
-  readiness/queue-health endpoint; deployment as a separate Coolify process remains outstanding.
+  synchronous observation and asynchronous jobs. A dedicated Coolify worker claims scan jobs while
+  the web scheduler is disabled, and `/health/worker` exposes persisted readiness and queue health.
 
 ## Known limitations
 
@@ -52,10 +52,9 @@ product for procurement teams. It is not an official consumer price index.
    address, delivery-country and domain evidence rather than query intent or ccTLD alone.
 5. **Indices are pilot-grade.** Current base-100 series have sparse samples and no published
    revision policy, outlier model, seasonal treatment, confidence intervals or quality tier.
-6. **Worker separation is not deployed.** The repository has distinct web/worker services, disables
-   scan execution in the web container and records worker heartbeats, queue depth and failures. A
-   dedicated Coolify worker, stalled-lease alerts, per-domain throttling and queue SLOs still need
-   production configuration and a seven-day soak.
+6. **Worker operations need a soak.** The dedicated Coolify worker is deployed, the web scheduler is
+   disabled, and persisted heartbeats report queue depth and failures. Stalled-lease alerts,
+   per-domain throttling, queue SLOs and seven consecutive healthy scan days still remain.
 7. **Quotas need production reconciliation.** The shared ledger and per-user daily Exa/fetch limits
    cover all paid discovery paths. Domain/minute budgets, an operator usage view and reconciliation
    against provider invoices/logs remain.
@@ -79,7 +78,7 @@ coverage. It is now split into independently testable releases.
 
 ### Release A — comparable-offer contract
 
-Status: first increment implemented locally; production deployment and evidence-field expansion remain.
+Status: first increment deployed; evidence-field expansion remains.
 
 - Apply `offer-comparability-v1` to country and EU statistics, with excluded observations visible
   below the ranking and machine-readable reasons in REST and MCP results.
@@ -112,7 +111,7 @@ Acceptance criteria:
 ### Release C — evidence-driven source coverage
 
 Status: 100 concrete samples, the paused 20-item cohort, recurring-domain report and maintained
-starter-source fixtures are implemented locally. Live cohort activation is blocked by EXA HTTP 402.
+starter-source fixtures are deployed. Live cohort activation is blocked by EXA HTTP 402.
 
 - Continue ranking recurring domains from live usage and add adapters when fixtures reveal a real
   gap; generic JSON-LD/microdata already parses the strongest observed starter sources.

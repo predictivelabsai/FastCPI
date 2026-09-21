@@ -24,7 +24,7 @@ Status: 21 September 2026
 ## Trust and operating boundaries
 
 - **Observed sample** — Results describe the public sources successfully discovered and parsed; they do not claim complete supplier or market coverage.
-- **Transparent ranking** — A versioned comparability policy is implemented locally and awaiting deployment, keeping excluded evidence visible while preventing low-confidence, mismatched or incompatible offers from influencing price statistics.
+- **Transparent ranking** — A versioned comparability policy is deployed, keeping excluded evidence visible while preventing low-confidence, mismatched or incompatible offers from influencing price statistics.
 - **Commercial caveats** — Unknown VAT, delivery, supplier entity and market-delivery terms are shown explicitly rather than silently assumed.
 - **Current constraints** — JavaScript-only catalogues, authenticated portals, PDFs, quote-only suppliers and many source-specific commercial terms remain only partially supported.
 
