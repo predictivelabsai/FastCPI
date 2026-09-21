@@ -63,6 +63,7 @@ The Compose topology disables scan execution in the web container and runs
 heartbeat and queue state. A shared ledger applies daily user limits to Exa searches and public-page
 fetches across every paid discovery path. Threshold events include the best observed source URL;
 when email is enabled, one Postmark alert is sent for that scan and the event is marked notified.
+Production uses `Dockerfile.worker` for the no-route Coolify worker application.
 
 ## Evidence contract
 

@@ -95,8 +95,8 @@ Acceptance criteria:
 
 ### Release B — independently operable monitoring
 
-Status: repository implementation complete for split web/worker services, worker heartbeats and
-shared paid-usage quotas; Coolify worker deployment, alerts and soak verification remain.
+Status: split web/worker services, worker heartbeats, shared paid-usage quotas and the dedicated
+Coolify worker are implemented. Stalled-job alerts and seven-day soak verification remain.
 
 - Deploy `python -m scripts.watchlist_worker` as a separate Coolify process and turn off the web
   worker there; add readiness/queue-depth metrics, stalled-lease alerts and a dead-letter view.
